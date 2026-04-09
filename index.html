@@ -14,44 +14,25 @@
         :root {
             --primary: #d4af37;
             --primary-dark: #b8941f;
-            --primary-light: #f5e6a3;
-            --secondary: #0a0a0f;
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
-            --info: #3b82f6;
-            --purple: #8b5cf6;
-            --pink: #ec4899;
-            --cyan: #06b6d4;
-            --orange: #f97316;
             --mpesa: #6c1e7f;
-            --mpesa-light: #9b4dca;
             --emola: #00a859;
-            --emola-light: #00d46a;
-            --gray: #6b7280;
-            --gray-light: #f9fafb;
-            --dark: #1f2937;
             --gradient-gold: linear-gradient(135deg, #d4af37 0%, #f5c542 50%, #b8941f 100%);
             --gradient-mpesa: linear-gradient(135deg, #6c1e7f 0%, #9b4dca 50%, #6c1e7f 100%);
             --gradient-emola: linear-gradient(135deg, #00a859 0%, #00d46a 50%, #00a859 100%);
             --gradient-bg: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
-            --gradient-card: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            --shadow-glow: 0 0 30px rgba(212, 175, 55, 0.3);
             --shadow-neon: 0 0 20px rgba(212, 175, 55, 0.5);
         }
         
         body { 
             font-family: 'Inter', sans-serif; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+            background: var(--gradient-bg);
             background-size: 400% 400%;
             animation: gradientBG 10s ease infinite;
-            overflow-x: hidden;
-            position: relative;
             min-height: 100vh;
+            position: relative;
         }
         
         @keyframes gradientBG {
@@ -60,7 +41,28 @@
             100% { background-position: 0% 50%; }
         }
         
-        /* Partículas animadas */
+        @keyframes floatParticle {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+        }
+        
+        @keyframes fadeInUp { 
+            from { opacity: 0; transform: translateY(50px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        
+        @keyframes pulseGlow { 
+            0%,100% { box-shadow: 0 0 10px rgba(212,175,55,0.3); }
+            50% { box-shadow: 0 0 30px rgba(212,175,55,0.6); }
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
         .particles {
             position: fixed;
             top: 0;
@@ -73,69 +75,11 @@
         
         .particle {
             position: absolute;
-            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+            background: radial-gradient(circle, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 70%);
             border-radius: 50%;
             animation: floatParticle linear infinite;
         }
         
-        @keyframes floatParticle {
-            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
-        }
-        
-        /* Efeito Glassmorphism colorido */
-        .glass {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Animações principais */
-        @keyframes fadeInUp { 
-            from { opacity: 0; transform: translateY(50px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
-        
-        @keyframes fadeInLeft { 
-            from { opacity: 0; transform: translateX(-50px); } 
-            to { opacity: 1; transform: translateX(0); } 
-        }
-        
-        @keyframes fadeInRight { 
-            from { opacity: 0; transform: translateX(50px); } 
-            to { opacity: 1; transform: translateX(0); } 
-        }
-        
-        @keyframes pulseGlow { 
-            0%,100% { transform: scale(1); box-shadow: 0 0 10px rgba(212,175,55,0.3); }
-            50% { transform: scale(1.02); box-shadow: 0 0 30px rgba(212,175,55,0.6); }
-        }
-        
-        @keyframes float3D { 
-            0%,100% { transform: translateY(0px) rotateX(0deg); }
-            50% { transform: translateY(-8px) rotateX(2deg); }
-        }
-        
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-        
-        @keyframes bounceIn {
-            0% { transform: scale(0); opacity: 0; }
-            60% { transform: scale(1.05); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        
-        /* Login Container */
         .login-container { 
             position: fixed; 
             top: 0; 
@@ -158,26 +102,12 @@
             width: 100%; 
             max-width: 480px; 
             border: 1px solid rgba(255,255,255,0.2); 
-            box-shadow: var(--shadow-xl); 
-            animation: fadeInUp 0.8s ease, float3D 6s ease-in-out infinite;
+            animation: fadeInUp 0.8s ease;
         }
         
         .login-logo { text-align: center; margin-bottom: 40px; }
-        .login-logo .logo-icon { 
-            font-size: 4.5em; 
-            color: #fff; 
-            animation: pulseGlow 2s ease-in-out infinite;
-            display: inline-block; 
-            filter: drop-shadow(0 0 20px rgba(255,255,255,0.5));
-        }
-        
-        .login-logo h1 { 
-            background: linear-gradient(135deg, #fff, #f5c542);
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-            font-size: 2.2em; 
-            font-weight: 800; 
-        }
+        .login-logo .logo-icon { font-size: 4.5em; color: #fff; animation: pulseGlow 2s infinite; display: inline-block; }
+        .login-logo h1 { background: linear-gradient(135deg, #fff, #f5c542); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2.2em; font-weight: 800; }
         
         .input-group { margin-bottom: 25px; }
         .input-group label { display: block; color: white; margin-bottom: 8px; font-weight: 600; }
@@ -189,14 +119,8 @@
             border-radius: 24px; 
             color: white; 
             font-size: 16px; 
-            transition: all 0.3s;
         }
-        .input-group input:focus { 
-            outline: none; 
-            border-color: #fff; 
-            box-shadow: 0 0 0 3px rgba(255,255,255,0.2);
-            transform: scale(1.02);
-        }
+        .input-group input:focus { outline: none; border-color: #fff; transform: scale(1.02); }
         
         .login-btn { 
             width: 100%; 
@@ -213,7 +137,8 @@
         }
         .login-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         
-        /* Top Bar */
+        .app-container { display: none; min-height: 100vh; }
+        
         .top-bar { 
             background: rgba(255,255,255,0.1);
             backdrop-filter: blur(15px);
@@ -228,12 +153,6 @@
             padding: 0 30px; 
             z-index: 999; 
             border-bottom: 1px solid rgba(255,255,255,0.2);
-            animation: fadeInDown 0.6s ease;
-        }
-        
-        @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-30px); }
-            to { opacity: 1; transform: translateY(0); }
         }
         
         .page-title { 
@@ -244,7 +163,6 @@
             -webkit-text-fill-color: transparent; 
         }
         
-        /* Sidebar */
         .sidebar { 
             width: 280px; 
             background: rgba(0,0,0,0.3);
@@ -260,12 +178,7 @@
         }
         
         .sidebar-header { padding: 25px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); }
-        .sidebar-header h2 { 
-            background: linear-gradient(135deg, #fff, #f5c542);
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-            font-size: 1.8em; 
-        }
+        .sidebar-header h2 { background: linear-gradient(135deg, #fff, #f5c542); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1.8em; }
         
         .nav-item { 
             padding: 14px 20px; 
@@ -282,7 +195,6 @@
         .nav-item:hover { background: rgba(255,255,255,0.15); color: #fff; transform: translateX(8px); }
         .nav-item.active { background: rgba(255,255,255,0.2); color: #fff; }
         
-        /* Main Content */
         .main-content { 
             margin-left: 280px; 
             margin-top: 70px; 
@@ -292,47 +204,22 @@
             z-index: 1;
         }
         
-        /* Stats Cards */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 25px; margin-bottom: 35px; }
         
         .stat-card { 
-            background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+            background: rgba(255,255,255,0.1);
             backdrop-filter: blur(10px);
             padding: 25px; 
             border-radius: 28px; 
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            transition: all 0.3s; 
             border: 1px solid rgba(255,255,255,0.2);
-            animation: bounceIn 0.6s ease;
-            animation-fill-mode: both;
+            text-align: center;
         }
-        
-        .stat-card:nth-child(1) { animation-delay: 0.1s; }
-        .stat-card:nth-child(2) { animation-delay: 0.2s; }
-        .stat-card:nth-child(3) { animation-delay: 0.3s; }
-        .stat-card:nth-child(4) { animation-delay: 0.4s; }
-        
-        .stat-card:hover { 
-            transform: translateY(-10px) scale(1.02); 
-            background: linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.1));
-            border-color: rgba(255,255,255,0.4);
-        }
-        
-        .stat-card i { 
-            font-size: 2.5em; 
-            color: #fff; 
-            margin-bottom: 12px;
-            text-shadow: 0 0 20px rgba(255,255,255,0.5);
-        }
-        
-        .stat-card .value { 
-            font-size: 2.2em; 
-            font-weight: 800; 
-            color: #fff;
-        }
-        
+        .stat-card:hover { transform: translateY(-10px); background: rgba(255,255,255,0.2); }
+        .stat-card i { font-size: 2.5em; color: #fff; margin-bottom: 12px; }
+        .stat-card .value { font-size: 2.2em; font-weight: 800; color: #fff; }
         .stat-card h3 { color: rgba(255,255,255,0.9); }
         
-        /* POS Interface */
         .pos-interface { display: grid; grid-template-columns: 1fr 420px; gap: 25px; height: calc(100vh - 130px); }
         
         .products-panel, .cart-panel { 
@@ -341,10 +228,7 @@
             border-radius: 28px; 
             padding: 25px; 
             border: 1px solid rgba(255,255,255,0.2);
-            animation: fadeInLeft 0.6s ease;
         }
-        
-        .cart-panel { animation: fadeInRight 0.6s ease; }
         
         .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 20px; }
         
@@ -353,24 +237,12 @@
             border-radius: 20px; 
             padding: 18px; 
             cursor: pointer; 
-            transition: all 0.4s; 
+            transition: all 0.3s; 
             border: 1px solid rgba(255,255,255,0.2);
             text-align: center;
         }
-        
-        .product-card:hover { 
-            transform: translateY(-8px); 
-            background: rgba(255,255,255,0.2); 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        .product-card .price { 
-            color: #f5c542; 
-            font-size: 1.3em; 
-            font-weight: 800; 
-            margin-top: 8px;
-        }
-        
+        .product-card:hover { transform: translateY(-8px); background: rgba(255,255,255,0.2); }
+        .product-card .price { color: #f5c542; font-size: 1.3em; font-weight: 800; margin-top: 8px; }
         .product-card h4, .product-card small { color: white; }
         
         .cart-item { 
@@ -381,39 +253,10 @@
             display: flex; 
             justify-content: space-between; 
             align-items: center;
-            transition: all 0.3s;
-            border: 1px solid rgba(255,255,255,0.1);
             color: white;
         }
         
-        .cart-item:hover { transform: translateX(5px); background: rgba(255,255,255,0.15); }
-        
-        /* Botões */
-        .btn { 
-            padding: 14px 28px; 
-            border: none; 
-            border-radius: 24px; 
-            font-weight: 700; 
-            cursor: pointer; 
-            display: inline-flex; 
-            align-items: center; 
-            gap: 10px; 
-            transition: all 0.3s; 
-        }
-        .btn-primary { background: linear-gradient(135deg, #fff, #f5c542); color: #764ba2; }
-        .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
-        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
-        .btn-mpesa { background: linear-gradient(135deg, #6c1e7f, #9b4dca); color: white; }
-        .btn-emola { background: linear-gradient(135deg, #00a859, #00d46a); color: white; }
-        .btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
-        
-        /* Estilos para os métodos de pagamento */
-        .payment-methods {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
+        .payment-methods { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
         
         .payment-option {
             flex: 1;
@@ -425,51 +268,32 @@
             border: 2px solid transparent;
             background: rgba(255,255,255,0.1);
         }
-        
-        .payment-option i {
-            font-size: 2em;
-            margin-bottom: 8px;
-            display: block;
-        }
-        
-        .payment-option span {
-            font-weight: 600;
-            font-size: 14px;
-        }
-        
         .payment-option.active {
             border-color: white;
             background: rgba(255,255,255,0.2);
             transform: scale(1.02);
         }
+        .payment-option.mpesa.active { background: rgba(108,30,127,0.3); border-color: #9b4dca; }
+        .payment-option.emola.active { background: rgba(0,168,89,0.3); border-color: #00d46a; }
+        .payment-option.dinheiro.active { background: rgba(212,175,55,0.3); border-color: #f5c542; }
+        .payment-option i { font-size: 2em; margin-bottom: 8px; display: block; }
+        .payment-option.mpesa i { color: #9b4dca; }
+        .payment-option.emola i { color: #00d46a; }
+        .payment-option.dinheiro i { color: #f5c542; }
         
-        .payment-option.mpesa.active {
-            background: linear-gradient(135deg, rgba(108,30,127,0.3), rgba(155,77,202,0.3));
-            border-color: #9b4dca;
+        .btn { 
+            padding: 14px 28px; 
+            border: none; 
+            border-radius: 24px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: all 0.3s; 
         }
+        .btn-primary { background: linear-gradient(135deg, #fff, #f5c542); color: #764ba2; }
+        .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
         
-        .payment-option.emola.active {
-            background: linear-gradient(135deg, rgba(0,168,89,0.3), rgba(0,212,106,0.3));
-            border-color: #00d46a;
-        }
-        
-        .payment-option.dinheiro.active {
-            background: linear-gradient(135deg, rgba(212,175,55,0.3), rgba(245,197,66,0.3));
-            border-color: #f5c542;
-        }
-        
-        .payment-option.mpesa i { color: #9b4dca; text-shadow: 0 0 10px rgba(155,77,202,0.5); }
-        .payment-option.emola i { color: #00d46a; text-shadow: 0 0 10px rgba(0,212,106,0.5); }
-        .payment-option.dinheiro i { color: #f5c542; text-shadow: 0 0 10px rgba(245,197,66,0.5); }
-        
-        /* Animation for payment selection */
-        @keyframes paymentPulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        
-        /* Notification */
         .notification {
             position: fixed;
             top: 80px;
@@ -481,13 +305,12 @@
             border-radius: 16px;
             font-weight: 700;
             z-index: 2000;
-            animation: slideInRight 0.3s ease, pulseGlow 2s ease-in-out infinite;
+            animation: slideInRight 0.3s ease;
             display: flex;
             align-items: center;
             gap: 12px;
         }
         
-        /* Toast */
         .toast { 
             position: fixed; 
             bottom: 30px; 
@@ -506,7 +329,6 @@
             color: white;
         }
         
-        /* Online Badge */
         .online-badge { 
             position: fixed; 
             bottom: 20px; 
@@ -517,14 +339,12 @@
             border-radius: 30px; 
             font-size: 11px; 
             z-index: 999; 
-            font-weight: 600; 
             display: flex;
             align-items: center;
             gap: 8px;
             animation: pulseGlow 2s infinite;
         }
         
-        /* Data Table */
         .data-table { 
             background: rgba(255,255,255,0.1);
             backdrop-filter: blur(10px);
@@ -533,11 +353,9 @@
             border: 1px solid rgba(255,255,255,0.2);
             color: white;
         }
-        
         .data-table th { background: rgba(255,255,255,0.15); padding: 15px; }
         .data-table td { padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         
-        /* Modal */
         .modal { 
             position: fixed; 
             top: 0; 
@@ -550,9 +368,8 @@
             justify-content: center; 
             align-items: center; 
             z-index: 2000; 
-            padding: 20px; 
         }
-        .modal.active { display: flex; animation: fadeInUp 0.3s ease; }
+        .modal.active { display: flex; }
         .modal-content { 
             background: rgba(30,41,59,0.95);
             backdrop-filter: blur(15px);
@@ -602,9 +419,7 @@
     </style>
 </head>
 <body>
-    <!-- Partículas de fundo -->
     <div class="particles" id="particles"></div>
-    
     <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
     
     <div class="login-container" id="loginContainer">
@@ -633,10 +448,7 @@
     
     <div class="app-container" id="appContainer">
         <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <h2>🦁 LIONS</h2>
-                <div class="user-info" id="userInfo"></div>
-            </div>
+            <div class="sidebar-header"><h2>🦁 LIONS</h2><div class="user-info" id="userInfo"></div></div>
             <div class="nav-item" onclick="navigateTo('dashboard')"><i class="fas fa-chart-line"></i> <span>Dashboard</span></div>
             <div class="nav-item" onclick="navigateTo('pos')"><i class="fas fa-shopping-cart"></i> <span>Ponto de Venda</span></div>
             <div class="nav-item admin-only" onclick="navigateTo('stock')" style="display:none;"><i class="fas fa-boxes"></i> <span>Gestão de Stock</span></div>
@@ -658,7 +470,7 @@
         <div class="main-content" id="mainContent">
             <div style="text-align:center;padding:50px">
                 <i class="fas fa-spinner fa-spin fa-3x" style="color:white"></i>
-                <p style="font-weight:600; color:white; margin-top:20px;">Carregando Sistema...</p>
+                <p style="color:white; margin-top:20px;">Carregando Sistema...</p>
             </div>
         </div>
     </div>
@@ -683,7 +495,6 @@
                 particlesContainer.appendChild(particle);
             }
         }
-        
         createParticles();
         
         // ========== CONFIGURAÇÃO SUPABASE ==========
@@ -691,7 +502,6 @@
         const SUPABASE_KEY = "sb_publishable_a27v01_Evo8ocfrOACzXrQ_X_oKJv4V";
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
-        // as vendas
         // ========== VARIÁVEIS GLOBAIS ==========
         let currentUser = null;
         let currentCart = [];
@@ -708,14 +518,16 @@
             notificacao.innerHTML = `<i class="fas fa-bell"></i><strong>${titulo}</strong><span>${mensagem}</span>`;
             document.body.appendChild(notificacao);
             setTimeout(() => notificacao.remove(), 5000);
-            if (Notification.permission === 'granted' && tipo === 'success') {
+            if (Notification.permission === 'granted') {
                 new Notification('🦁 LIONS FASHION', { body: mensagem });
             }
         }
         
-        // new
+        // ========== CARREGAR DADOS APENAS DO SUPABASE (NÃO USA LOCALSTORAGE) ==========
         async function loadAllData() {
             try {
+                console.log("🔄 Buscando dados do Supabase...");
+                
                 const [produtosRes, vendasRes, usuariosRes] = await Promise.all([
                     supabaseClient.from('products').select('*'),
                     supabaseClient.from('sales').select('*').order('date', { ascending: false }),
@@ -723,28 +535,23 @@
                 ]);
                 
                 if (produtosRes.data) products = produtosRes.data;
-                if (vendasRes.data) sales = vendasRes.data;
+                if (vendasRes.data) {
+                    sales = vendasRes.data;
+                    console.log(`✅ ${sales.length} vendas carregadas do Supabase`);
+                }
                 if (usuariosRes.data) users = usuariosRes.data;
                 
                 dataLoaded = true;
-                persistData();
                 document.getElementById('onlineStatus').innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Supabase • Sincronizado';
                 
                 if (currentUser && document.getElementById('pageTitle')?.innerText.includes('Dashboard')) showDashboard();
             } catch (err) {
-                console.error("Erro:", err);
+                console.error("Erro ao carregar do Supabase:", err);
                 dataLoaded = true;
             }
         }
         
-        function persistData() {
-            localStorage.setItem('lions_products', JSON.stringify(products));
-            localStorage.setItem('lions_users', JSON.stringify(users));
-            localStorage.setItem('lions_sales', JSON.stringify(sales));
-        }
-        
         async function saveProducts() {
-            persistData();
             for (const p of products) await supabaseClient.from('products').upsert(p);
         }
         
@@ -759,16 +566,9 @@
         function selectPaymentMethod(method) {
             selectedPaymentMethod = method;
             document.querySelectorAll('.payment-option').forEach(opt => opt.classList.remove('active'));
-            if (method === 'Dinheiro MZN') document.getElementById('paymentDinheiro').classList.add('active');
-            if (method === 'M-pesa') document.getElementById('paymentMpesa').classList.add('active');
-            if (method === 'E-mola') document.getElementById('paymentEmola').classList.add('active');
-            
-            // Animação de confirmação
-            const selected = document.querySelector(`.payment-option.${method === 'M-pesa' ? 'mpesa' : method === 'E-mola' ? 'emola' : 'dinheiro'}`);
-            if (selected) {
-                selected.style.animation = 'paymentPulse 0.3s ease';
-                setTimeout(() => { selected.style.animation = ''; }, 300);
-            }
+            if (method === 'Dinheiro MZN') document.getElementById('paymentDinheiro')?.classList.add('active');
+            if (method === 'M-pesa') document.getElementById('paymentMpesa')?.classList.add('active');
+            if (method === 'E-mola') document.getElementById('paymentEmola')?.classList.add('active');
         }
         
         window.processLogin = function() {
@@ -823,10 +623,6 @@
             });
             const topProducts = Object.entries(productSales).sort((a, b) => b[1] - a[1]).slice(0, 5);
             
-            const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
-            const vendasPorDia = Array(7).fill(0);
-            sales.forEach(sale => { const dia = new Date(sale.date).getDay(); vendasPorDia[dia] += sale.total || 0; });
-            
             document.getElementById('mainContent').innerHTML = `
                 <div class="stats-grid">
                     <div class="stat-card"><i class="fas fa-chart-line"></i><h3>Total Vendas</h3><div class="value">${totalSales}</div></div>
@@ -834,17 +630,9 @@
                     <div class="stat-card"><i class="fas fa-calendar-day"></i><h3>Vendas Hoje</h3><div class="value">${vendasHojeTotal.toLocaleString()} MZN</div></div>
                     <div class="stat-card"><i class="fas fa-box"></i><h3>Stock em Mão</h3><div class="value">${totalStock}</div></div>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; margin-bottom: 25px;">
-                    <div class="data-table" style="padding: 20px;"><h3 style="margin-bottom: 20px;">🏆 Produtos Mais Vendidos</h3><canvas id="topProductsChart"></canvas></div>
-                    <div class="data-table" style="padding: 20px;"><h3 style="margin-bottom: 20px;">📊 Vendas por Dia</h3><canvas id="weeklySalesChart"></canvas></div>
-                </div>
-                <div class="data-table"><h3 style="padding: 20px;">🔄 Últimas Vendas</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th></tr></thead><tbody>${sales.slice(0, 10).map(s => `<tr><td>${s.invoice || 'N/A'}</td><td>${new Date(s.date).toLocaleString()}</td><td>${s.seller || 'N/A'}</td><td>${(s.total || 0).toLocaleString()} MZN</td>`).join('') || '<tr><td colspan="4">Sem vendas</td>'}</tbody>}</div>
+                <div class="data-table"><h3 style="padding: 20px;">🏆 Produtos Mais Vendidos</h3><table style="width:100%;"><thead><tr><th>Produto</th><th>Unidades</th></tr></thead><tbody>${topProducts.map(([name, qty]) => `<tr><td style="font-weight:700;"><strong>${name}</strong></td><td style="font-weight:700;">${qty}</td></tr>`).join('') || '<tr><td colspan="2">Sem dados ainda</td>'}</tbody>}</div>
+                <div class="data-table" style="margin-top: 25px;"><h3 style="padding: 20px;">🔄 Últimas Vendas</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th></tr></thead><tbody>${sales.slice(0, 10).map(s => `<tr><td style="font-weight:600;">${s.invoice || 'N/A'}</td><td>${new Date(s.date).toLocaleString()}</td><td>${s.seller || 'N/A'}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</td></tr>`).join('') || '<tr><td colspan="4">Sem vendas registadas</td>'}</tbody>}</div>
             `;
-            
-            if (typeof Chart !== 'undefined') {
-                new Chart(document.getElementById('topProductsChart'), { type: 'bar', data: { labels: topProducts.map(p => p[0]), datasets: [{ label: 'Unidades', data: topProducts.map(p => p[1]), backgroundColor: '#f5c542' }] }, options: { responsive: true } });
-                new Chart(document.getElementById('weeklySalesChart'), { type: 'line', data: { labels: diasSemana, datasets: [{ label: 'Vendas (MZN)', data: vendasPorDia, borderColor: '#f5c542', tension: 0.3, fill: true, backgroundColor: 'rgba(245,197,66,0.1)' }] }, options: { responsive: true } });
-            }
         }
         
         function showPOS() {
@@ -861,24 +649,13 @@
                             <div style="display:flex;justify-content:space-between;margin-bottom:15px;"><strong>Total:</strong><strong id="cartTotal" style="color:#f5c542;">0.00 MZN</strong></div>
                             <div class="form-group"><label>💰 Valor Recebido</label><input type="number" id="amountReceived" placeholder="0.00" oninput="calculateChange()"></div>
                             <div style="margin-bottom:15px;"><strong>Troco:</strong> <span id="changeAmount" style="color:#10b981;">0.00 MZN</span></div>
-                            
-                            <!-- Métodos de Pagamento Estilizados -->
-                            <label style="display:block; margin-bottom:10px; font-weight:600;">💳 Selecione o Método de Pagamento</label>
-                            <div class="payment-methods">
-                                <div class="payment-option dinheiro active" id="paymentDinheiro" onclick="selectPaymentMethod('Dinheiro MZN')">
-                                    <i class="fas fa-money-bill-wave"></i>
-                                    <span>Dinheiro</span>
-                                </div>
-                                <div class="payment-option mpesa" id="paymentMpesa" onclick="selectPaymentMethod('M-pesa')">
-                                    <i class="fas fa-mobile-alt"></i>
-                                    <span>M-Pesa</span>
-                                </div>
-                                <div class="payment-option emola" id="paymentEmola" onclick="selectPaymentMethod('E-mola')">
-                                    <i class="fas fa-wifi"></i>
-                                    <span>E-Mola</span>
+                            <div class="form-group"><label>💳 Método de Pagamento</label>
+                                <div class="payment-methods">
+                                    <div class="payment-option dinheiro active" id="paymentDinheiro" onclick="selectPaymentMethod('Dinheiro MZN')"><i class="fas fa-money-bill-wave"></i><span>Dinheiro</span></div>
+                                    <div class="payment-option mpesa" id="paymentMpesa" onclick="selectPaymentMethod('M-pesa')"><i class="fas fa-mobile-alt"></i><span>M-Pesa</span></div>
+                                    <div class="payment-option emola" id="paymentEmola" onclick="selectPaymentMethod('E-mola')"><i class="fas fa-wifi"></i><span>E-Mola</span></div>
                                 </div>
                             </div>
-                            
                             <button class="btn btn-success" style="width:100%; margin-top:15px;" onclick="finalizeSale()"><i class="fas fa-check-circle"></i> Finalizar Venda</button>
                         </div>
                     </div>
@@ -947,18 +724,18 @@
             if (error) { showToast('Erro: ' + error.message, 'error'); return; }
             for (const item of currentCart) { const prod = products.find(p => p.id === item.id); if (prod) prod.stock -= item.quantity; }
             await saveProducts();
-            sales.unshift(saleData);
-            persistData();
+            
+            // Recarregar dados do Supabase para garantir sincronia
+            await loadAllData();
+            
             printReceipt(saleData);
             
-            // Notificação com ícone do método de pagamento
             const paymentIcon = paymentMethod === 'M-pesa' ? '📱' : paymentMethod === 'E-mola' ? '📶' : '💰';
             notificarGerente('🛒 Nova Venda!', `${paymentIcon} ${saleData.seller} vendeu ${total.toLocaleString()} MZN via ${paymentMethod}`, 'success');
             
             currentCart = [];
             updateCartDisplay();
             filterProducts();
-            await loadAllData();
             showToast(`✅ Venda de ${total.toLocaleString()} MZN registrada via ${paymentMethod}!`, 'success');
         };
         
@@ -973,23 +750,52 @@
             win.document.close();
         }
         
+        // ========== FECHO DO DIA - APAGA VENDAS DO SUPABASE ==========
         window.fechoDoDia = async function() {
-            if (!confirm('⚠️ Tem certeza que deseja fechar o dia?')) return;
+            if (!confirm('⚠️ Tem certeza que deseja fechar o dia? Todas as vendas de hoje serão removidas permanentemente do Supabase.')) return;
+            
             const hoje = new Date();
-            const vendasHoje = sales.filter(s => new Date(s.date).toDateString() === hoje.toDateString());
+            const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+            const vendasHoje = sales.filter(s => new Date(s.date) >= inicioDia);
             const totalDia = vendasHoje.reduce((s, v) => s + v.total, 0);
-            notificarGerente('📅 Fecho do Dia', `Dia finalizado! Total: ${totalDia.toLocaleString()} MZN`, 'warning');
-            const relatorio = `\n       LIONS FASHION\n    RELATÓRIO DE FECHO\n-----------------------------\nDATA: ${hoje.toLocaleDateString('pt-MZ')}\nHORA: ${new Date().toLocaleTimeString()}\nOPERADOR: ${currentUser.name}\n-----------------------------\nTotal Vendas: ${vendasHoje.length}\nReceita: ${totalDia.toLocaleString()} MZN\n-----------------------------\n   ✅ FECHO REALIZADO ✅\n`;
+            const qtdVendas = vendasHoje.length;
+            
+            if (qtdVendas === 0) {
+                showToast('Não há vendas para fechar hoje!', 'warning');
+                return;
+            }
+            
+            notificarGerente('📅 Fecho do Dia', `Fechando dia com ${qtdVendas} vendas e total de ${totalDia.toLocaleString()} MZN`, 'warning');
+            
+            // APAGAR AS VENDAS DE HOJE DO SUPABASE
+            for (const venda of vendasHoje) {
+                await supabaseClient.from('sales').delete().eq('id', venda.id);
+            }
+            
+            // Recarregar dados do Supabase
+            await loadAllData();
+            
+            notificarGerente('✅ Fecho do Dia Concluído!', `Dia finalizado! ${qtdVendas} vendas, Total: ${totalDia.toLocaleString()} MZN`, 'success');
+            
+            // Relatório para impressão
+            const pagamentos = {};
+            vendasHoje.forEach(v => { pagamentos[v.payment_method] = (pagamentos[v.payment_method] || 0) + v.total; });
+            let pagStr = '';
+            for(let [met, val] of Object.entries(pagamentos)) pagStr += `${met}: ${val.toLocaleString()} MZN\n`;
+            
+            const relatorio = `\n       LIONS FASHION\n    RELATÓRIO DE FECHO\n-----------------------------\nDATA: ${hoje.toLocaleDateString('pt-MZ')}\nHORA: ${new Date().toLocaleTimeString()}\nOPERADOR: ${currentUser.name}\n-----------------------------\nTotal Vendas: ${qtdVendas}\nReceita: ${totalDia.toLocaleString()} MZN\n-----------------------------\n${pagStr}\n-----------------------------\n   ✅ FECHO REALIZADO ✅\n`;
+            
             const win = window.open('', '_blank');
-            win.document.write(`<html><head><title>Fecho do Dia</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:2mm;font-size:13pt;white-space:pre-wrap;}</style></head><body><pre>${relatorio}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
+            win.document.write(`<html><head><title>Fecho do Dia</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:2mm;font-size:13pt;white-space:pre-wrap; font-weight:bold;}</style></head><body><pre>${relatorio}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
             win.document.close();
-            showToast('Fecho do dia realizado!', 'success');
+            
+            showToast(`✅ Fecho do dia concluído! ${qtdVendas} vendas, ${totalDia.toLocaleString()} MZN`, 'success');
         };
         
-        function showStock() { document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">📦 Gestão de Stock</h2><div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Stock</th><th>Preço</th><th>Ação</th></tr></thead><tbody>${products.map(p => `<tr><td><strong>${p.name}</strong></td><td>${p.category}</td><td style="font-size:1.2em;font-weight:800;">${p.stock}</td><td>${p.salePrice.toLocaleString()} MZN</td><td><button class="btn btn-primary" onclick="updateStock(${p.id})"><i class="fas fa-edit"></i> Ajustar</button></td>`).join('')}</tbody>}</div>`; }
+        function showStock() { document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">📦 Gestão de Stock</h2><div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Stock</th><th>Preço</th><th>Ação</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td>${p.category}</td><td style="font-size:1.2em;font-weight:800;">${p.stock}</td><td>${p.salePrice.toLocaleString()} MZN</td><td><button class="btn btn-primary" onclick="updateStock(${p.id})"><i class="fas fa-edit"></i> Ajustar</button></td>`).join('')}</tbody>}</div>`; }
         window.updateStock = async function(id) { const novo = prompt('Digite a nova quantidade:'); if (novo && !isNaN(novo)) { const prod = products.find(p => p.id === id); if (prod) { prod.stock = parseInt(novo); await saveProducts(); showToast(`Stock de ${prod.name} atualizado!`, 'success'); showStock(); } } };
         
-        function showProducts() { document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">🏷️ Gestão de Produtos</h2><button class="btn btn-primary" onclick="showProductModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Produto</button><div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Compra</th><th>Venda</th><th>Stock</th><th>Ações</th></tr></thead><tbody>${products.map(p => `<tr><td><strong>${p.name}</strong></td><td>${p.category}</td><td>${p.purchasePrice.toLocaleString()} MZN</td><td>${p.salePrice.toLocaleString()} MZN</td><td>${p.stock}</td><td><button class="btn btn-primary" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button> <button class="btn btn-danger" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button></td>`).join('')}</tbody>}</div>`; }
+        function showProducts() { document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">🏷️ Gestão de Produtos</h2><button class="btn btn-primary" onclick="showProductModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Produto</button><div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Compra</th><th>Venda</th><th>Stock</th><th>Ações</th><tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td>${p.category}</td><td>${p.purchasePrice.toLocaleString()} MZN</td><td>${p.salePrice.toLocaleString()} MZN</td><td>${p.stock}</td><td><button class="btn btn-primary" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button> <button class="btn btn-danger" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody></table></div>`; }
         
         window.showProductModal = function(product = null) { const modal = document.createElement('div'); modal.className = 'modal active'; modal.innerHTML = `<div class="modal-content"><h3>${product ? 'Editar Produto' : 'Novo Produto'}</h3><div class="form-group"><label>Nome</label><input type="text" id="prodName" value="${product ? product.name : ''}"></div><div class="form-group"><label>Categoria</label><select id="prodCategory">${CATEGORIAS.map(cat => `<option ${product?.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div><div class="form-group"><label>Preço Compra</label><input type="number" id="prodPurchase" value="${product ? product.purchasePrice : ''}"></div><div class="form-group"><label>Preço Venda</label><input type="number" id="prodSale" value="${product ? product.salePrice : ''}"></div><div class="form-group"><label>Stock</label><input type="number" id="prodStock" value="${product ? product.stock : '0'}"></div><div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()">Cancelar</button><button class="btn btn-success" onclick="saveProduct(${product ? product.id : 'null'})">Salvar</button></div></div>`; document.body.appendChild(modal); };
         
@@ -998,19 +804,40 @@
         window.editProduct = function(id) { const p = products.find(p => p.id === id); if (p) showProductModal(p); };
         window.deleteProduct = async function(id) { if (confirm('Excluir produto?')) { products = products.filter(p => p.id !== id); await saveProducts(); showProducts(); showToast('Produto excluído!', 'success'); } };
         
-        function showSellers() { const sellerList = users.filter(u => u.role === 'seller'); document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">👥 Gestão de Vendedores</h2><button class="btn btn-primary" onclick="showSellerModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Vendedor</button><div class="data-table"><table style="width:100%;"><thead><tr><th>ID</th><th>Nome</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${sellerList.map(s => `<tr><td>${s.userId}</td><td>${s.name}</td><td>${new Date(s.createdAt).toLocaleDateString()}</td><td><button class="btn btn-danger" onclick="deleteSeller(${s.id})">Excluir</button></td>`).join('')}</tbody>}</div>`; }
+        function showSellers() { const sellerList = users.filter(u => u.role === 'seller'); document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">👥 Gestão de Vendedores</h2><button class="btn btn-primary" onclick="showSellerModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Vendedor</button><div class="data-table"><table style="width:100%;"><thead><tr><th>ID</th><th>Nome</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${sellerList.map(s => `<td><td style="font-weight:700;"><strong>${s.userId}</strong></td><td>${s.name}</td><td>${new Date(s.createdAt).toLocaleDateString()}</td><td><button class="btn btn-danger" onclick="deleteSeller(${s.id})">Excluir</button></td></tr>`).join('')}</tbody></table></div>`; }
         
         window.showSellerModal = function() { const modal = document.createElement('div'); modal.className = 'modal active'; modal.innerHTML = `<div class="modal-content"><h3>Novo Vendedor</h3><div class="form-group"><label>ID</label><input type="text" id="sellerId" placeholder="VEND002"></div><div class="form-group"><label>Nome</label><input type="text" id="sellerName"></div><div class="form-group"><label>Senha</label><input type="password" id="sellerPass"></div><div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()">Cancelar</button><button class="btn btn-success" onclick="saveSeller()">Cadastrar</button></div></div>`; document.body.appendChild(modal); };
         
-        window.saveSeller = async function() { const userId = document.getElementById('sellerId').value; const name = document.getElementById('sellerName').value; const password = document.getElementById('sellerPass').value; if (!userId || !name || !password) { showToast('Preencha todos!', 'error'); return; } if (users.find(u => u.userId === userId)) { showToast('ID já existe!', 'error'); return; } const newId = Math.max(...users.map(u => u.id), 0) + 1; const newUser = { id: newId, userId, password, name, role: 'seller', createdAt: new Date().toISOString() }; users.push(newUser); persistData(); await supabaseClient.from('users').upsert(newUser); document.querySelector('.modal').remove(); showSellers(); showToast('Vendedor cadastrado!', 'success'); };
-        window.deleteSeller = async function(id) { if (confirm('Excluir vendedor?')) { users = users.filter(u => u.id !== id); persistData(); await supabaseClient.from('users').delete().eq('id', id); showSellers(); showToast('Vendedor excluído!', 'success'); } };
+        window.saveSeller = async function() { const userId = document.getElementById('sellerId').value; const name = document.getElementById('sellerName').value; const password = document.getElementById('sellerPass').value; if (!userId || !name || !password) { showToast('Preencha todos!', 'error'); return; } if (users.find(u => u.userId === userId)) { showToast('ID já existe!', 'error'); return; } const newId = Math.max(...users.map(u => u.id), 0) + 1; const newUser = { id: newId, userId, password, name, role: 'seller', createdAt: new Date().toISOString() }; users.push(newUser); await supabaseClient.from('users').upsert(newUser); document.querySelector('.modal').remove(); showSellers(); showToast('Vendedor cadastrado!', 'success'); };
+        window.deleteSeller = async function(id) { if (confirm('Excluir vendedor?')) { users = users.filter(u => u.id !== id); await supabaseClient.from('users').delete().eq('id', id); showSellers(); showToast('Vendedor excluído!', 'success'); } };
         
-        function showReports() { const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0); const vendasPorVendedor = {}; sales.forEach(s => { vendasPorVendedor[s.seller] = (vendasPorVendedor[s.seller] || 0) + (s.total || 0); }); document.getElementById('mainContent').innerHTML = `<div class="stats-grid"><div class="stat-card"><h3>Total Vendas</h3><div class="value">${sales.length}</div></div><div class="stat-card"><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:25px;"><div class="data-table" style="padding:20px;"><h3>👤 Vendas por Vendedor</h3><canvas id="vendedorChart"></canvas></div><div class="data-table" style="padding:20px;"><h3>📋 Histórico</h3><div style="max-height:400px;overflow-y:auto;"><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th></tr></thead><tbody>${sales.slice(0, 30).map(s => `<tr><td>${s.invoice}</td><td>${new Date(s.date).toLocaleString()}</td><td>${s.seller}</td><td>${(s.total || 0).toLocaleString()} MZN</td>`).join('') || '<tr><td colspan="4">Sem vendas</td>'}</tbody>}</div></div></div>`; if (typeof Chart !== 'undefined') { new Chart(document.getElementById('vendedorChart'), { type: 'pie', data: { labels: Object.keys(vendasPorVendedor), datasets: [{ data: Object.values(vendasPorVendedor), backgroundColor: ['#f5c542', '#10b981', '#3b82f6', '#ef4444', '#f97316'] }] }, options: { responsive: true } }); } }
+        function showReports() { const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0); const vendasPorVendedor = {}; sales.forEach(s => { vendasPorVendedor[s.seller] = (vendasPorVendedor[s.seller] || 0) + (s.total || 0); }); document.getElementById('mainContent').innerHTML = `<div class="stats-grid"><div class="stat-card"><h3>Total Vendas</h3><div class="value">${sales.length}</div></div><div class="stat-card"><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:25px;"><div class="data-table" style="padding:20px;"><h3>👤 Vendas por Vendedor</h3><canvas id="vendedorChart"></canvas></div><div class="data-table" style="padding:20px;"><h3>📋 Histórico</h3><div style="max-height:400px;overflow-y:auto;"><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th></tr></thead><tbody>${sales.slice(0, 30).map(s => `<tr><td style="font-weight:600;">${s.invoice}</td><td>${new Date(s.date).toLocaleString()}</td><td>${s.seller}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</td></tr>`).join('') || '<tr><td colspan="4">Sem vendas</td></tr>'}</tbody></table></div></div></div>`; if (typeof Chart !== 'undefined') { new Chart(document.getElementById('vendedorChart'), { type: 'pie', data: { labels: Object.keys(vendasPorVendedor), datasets: [{ data: Object.values(vendasPorVendedor), backgroundColor: ['#f5c542', '#10b981', '#3b82f6', '#ef4444', '#f97316'] }] }, options: { responsive: true } }); } }
         
+        // ========== INICIALIZAÇÃO ==========
         window.onload = async () => {
-            if (Notification.permission !== 'granted' && Notification.permission !== 'denied') Notification.requestPermission();
-            supabaseClient.channel('sales-channel').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sales' }, payload => { if (currentUser && currentUser.role === 'admin') { notificarGerente('🛒 Nova Venda!', `Venda de ${payload.new.total.toLocaleString()} MZN!`, 'success'); loadAllData(); if (document.getElementById('pageTitle')?.innerText.includes('Dashboard')) showDashboard(); } }).subscribe();
+            if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                Notification.requestPermission();
+            }
+            
+            // REALTIME - sincroniza vendas em tempo real no celular do gerente
+            supabaseClient.channel('sales-channel')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sales' }, payload => { 
+                    if (currentUser && currentUser.role === 'admin') { 
+                        notificarGerente('🛒 Nova Venda!', `Venda de ${payload.new.total.toLocaleString()} MZN!`, 'success'); 
+                        loadAllData(); 
+                        if (document.getElementById('pageTitle')?.innerText.includes('Dashboard')) showDashboard(); 
+                    } 
+                })
+                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sales' }, () => { 
+                    if (currentUser && currentUser.role === 'admin') { 
+                        loadAllData(); 
+                        if (document.getElementById('pageTitle')?.innerText.includes('Dashboard')) showDashboard(); 
+                    } 
+                })
+                .subscribe();
+            
             await loadAllData();
+            console.log("🦁 LIONS FASHION - Sistema Pronto!");
         };
     </script>
 </body>
