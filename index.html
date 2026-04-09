@@ -750,52 +750,52 @@
         //     win.document.close();
         // }
         
-        // // ========== FECHO DO DIA - APAGA VENDAS DO SUPABASE ==========
-        // window.fechoDoDia = async function() {
-        //     if (!confirm('⚠️ Tem certeza que deseja fechar o dia? Todas as vendas de hoje serão removidas permanentemente do Supabase.')) return;
+        // ========== FECHO DO DIA - APAGA VENDAS DO SUPABASE ==========
+        window.fechoDoDia = async function() {
+            if (!confirm('⚠️ Tem certeza que deseja fechar o dia? Todas as vendas de hoje serão removidas permanentemente do Supabase.')) return;
             
-        //     const hoje = new Date();
-        //     const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-        //     const vendasHoje = sales.filter(s => new Date(s.date) >= inicioDia);
-        //     const totalDia = vendasHoje.reduce((s, v) => s + v.total, 0);
-        //     const qtdVendas = vendasHoje.length;
+            const hoje = new Date();
+            const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+            const vendasHoje = sales.filter(s => new Date(s.date) >= inicioDia);
+            const totalDia = vendasHoje.reduce((s, v) => s + v.total, 0);
+            const qtdVendas = vendasHoje.length;
             
-        //     if (qtdVendas === 0) {
-        //         showToast('Não há vendas para fechar hoje!', 'warning');
-        //         return;
-        //     }
+            if (qtdVendas === 0) {
+                showToast('Não há vendas para fechar hoje!', 'warning');
+                return;
+            }
            
         
 
 
 
 
-        //     notificarGerente('📅 Fecho do Dia', `Fechando dia com ${qtdVendas} vendas e total de ${totalDia.toLocaleString()} MZN`, 'warning');
+            notificarGerente('📅 Fecho do Dia', `Fechando dia com ${qtdVendas} vendas e total de ${totalDia.toLocaleString()} MZN`, 'warning');
             
-        //     // APAGAR AS VENDAS DE HOJE DO SUPABASE
-        //     for (const venda of vendasHoje) {
-        //         await supabaseClient.from('sales').delete().eq('id', venda.id);
-        //     }
+            // APAGAR AS VENDAS DE HOJE DO SUPABASE
+            for (const venda of vendasHoje) {
+                await supabaseClient.from('sales').delete().eq('id', venda.id);
+            }
             
-        //     // Recarregar dados do Supabase
-        //     await loadAllData();
+            // Recarregar dados do Supabase
+            await loadAllData();
             
-        //     notificarGerente('✅ Fecho do Dia Concluído!', `Dia finalizado! ${qtdVendas} vendas, Total: ${totalDia.toLocaleString()} MZN`, 'success');
+            notificarGerente('✅ Fecho do Dia Concluído!', `Dia finalizado! ${qtdVendas} vendas, Total: ${totalDia.toLocaleString()} MZN`, 'success');
             
-        //     // Relatório para impressão
-        //     const pagamentos = {};
-        //     vendasHoje.forEach(v => { pagamentos[v.payment_method] = (pagamentos[v.payment_method] || 0) + v.total; });
-        //     let pagStr = '';
-        //     for(let [met, val] of Object.entries(pagamentos)) pagStr += `${met}: ${val.toLocaleString()} MZN\n`;
+            // Relatório para impressão
+            const pagamentos = {};
+            vendasHoje.forEach(v => { pagamentos[v.payment_method] = (pagamentos[v.payment_method] || 0) + v.total; });
+            let pagStr = '';
+            for(let [met, val] of Object.entries(pagamentos)) pagStr += `${met}: ${val.toLocaleString()} MZN\n`;
             
-        //     const relatorio = `\n       LIONS FASHION\n    RELATÓRIO DE FECHO\n-----------------------------\nDATA: ${hoje.toLocaleDateString('pt-MZ')}\nHORA: ${new Date().toLocaleTimeString()}\nOPERADOR: ${currentUser.name}\n-----------------------------\nTotal Vendas: ${qtdVendas}\nReceita: ${totalDia.toLocaleString()} MZN\n-----------------------------\n${pagStr}\n-----------------------------\n   ✅ FECHO REALIZADO ✅\n`;
+            const relatorio = `\n       LIONS FASHION\n    RELATÓRIO DE FECHO\n-----------------------------\nDATA: ${hoje.toLocaleDateString('pt-MZ')}\nHORA: ${new Date().toLocaleTimeString()}\nOPERADOR: ${currentUser.name}\n-----------------------------\nTotal Vendas: ${qtdVendas}\nReceita: ${totalDia.toLocaleString()} MZN\n-----------------------------\n${pagStr}\n-----------------------------\n   ✅ FECHO REALIZADO ✅\n`;
             
-        //     const win = window.open('', '_blank');
-        //     win.document.write(`<html><head><title>Fecho do Dia</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:2mm;font-size:13pt;white-space:pre-wrap; font-weight:bold;}</style></head><body><pre>${relatorio}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
-        //     win.document.close();
+            const win = window.open('', '_blank');
+            win.document.write(`<html><head><title>Fecho do Dia</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:2mm;font-size:13pt;white-space:pre-wrap; font-weight:bold;}</style></head><body><pre>${relatorio}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
+            win.document.close();
             
-        //     showToast(`✅ Fecho do dia concluído! ${qtdVendas} vendas, ${totalDia.toLocaleString()} MZN`, 'success');
-        // };
+            showToast(`✅ Fecho do dia concluído! ${qtdVendas} vendas, ${totalDia.toLocaleString()} MZN`, 'success');
+        };
 
 
 
