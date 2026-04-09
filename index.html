@@ -739,32 +739,65 @@
             showToast(`✅ Venda de ${total.toLocaleString()} MZN registrada via ${paymentMethod}!`, 'success');
         };
         
-        function printReceipt(sale) {
-            let itensStr = '';
-            let itemsList = sale.items;
-            if (typeof itemsList === 'string') { try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } }
-            if (itemsList && Array.isArray(itemsList)) itemsList.forEach(item => { const nome = item.name.length > 20 ? item.name.substring(0, 18) + '..' : item.name; itensStr += `${nome}\n${item.quantity} x ${item.price.toLocaleString()} MZN     ${(item.price * item.quantity).toLocaleString()} MZN\n`; });
-            const receipt = `\n       LIONS FASHION\n Av. Julius Nyerere n°6600\n     Maputo - Moçambique\n\n-----------------------------\n FACTURA: ${sale.invoice}\n DATA: ${new Date(sale.date).toLocaleString('pt-MZ')}\n ATENDENTE: ${sale.seller}\n-----------------------------\n${itensStr}\n-----------------------------\n TOTAL: ${sale.total.toLocaleString()} MZN\n PAGAMENTO: ${sale.payment_method}\n ${sale.payment_method === 'Dinheiro MZN' ? `RECEBIDO: ${sale.received.toLocaleString()} MZN\n TROCO: ${sale.change.toLocaleString()} MZN` : ''}\n-----------------------------\n\n  OBRIGADO PELA PREFERÊNCIA!\n        VOLTE SEMPRE!\n\n`;
-            const win = window.open('', '_blank');
-            win.document.write(`<html><head><title>Recibo LIONS</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:2mm;font-size:12pt;white-space:pre-wrap;font-weight:bold;}</style></head><body><pre>${receipt}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
-            win.document.close();
+        // function printReceipt(sale) {
+        //     let itensStr = '';
+        //     let itemsList = sale.items;
+        //     if (typeof itemsList === 'string') { try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } }
+        //     if (itemsList && Array.isArray(itemsList)) itemsList.forEach(item => { const nome = item.name.length > 20 ? item.name.substring(0, 18) + '..' : item.name; itensStr += `${nome}\n${item.quantity} x ${item.price.toLocaleString()} MZN     ${(item.price * item.quantity).toLocaleString()} MZN\n`; });
+        //     const receipt = `\n       LIONS FASHION\n Av. Julius Nyerere n°6600\n     Maputo - Moçambique\n\n-----------------------------\n FACTURA: ${sale.invoice}\n DATA: ${new Date(sale.date).toLocaleString('pt-MZ')}\n ATENDENTE: ${sale.seller}\n-----------------------------\n${itensStr}\n-----------------------------\n TOTAL: ${sale.total.toLocaleString()} MZN\n PAGAMENTO: ${sale.payment_method}\n ${sale.payment_method === 'Dinheiro MZN' ? `RECEBIDO: ${sale.received.toLocaleString()} MZN\n TROCO: ${sale.change.toLocaleString()} MZN` : ''}\n-----------------------------\n\n  OBRIGADO PELA PREFERÊNCIA!\n        VOLTE SEMPRE!\n\n`;
+        //     const win = window.open('', '_blank');
+        //     win.document.write(`<html><head><title>Recibo LIONS</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:2mm;font-size:12pt;white-space:pre-wrap;font-weight:bold;}</style></head><body><pre>${receipt}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
+        //     win.document.close();
+        // }
+        
+        // // ========== FECHO DO DIA - APAGA VENDAS DO SUPABASE ==========
+        // window.fechoDoDia = async function() {
+        //     if (!confirm('⚠️ Tem certeza que deseja fechar o dia? Todas as vendas de hoje serão removidas permanentemente do Supabase.')) return;
+            
+        //     const hoje = new Date();
+        //     const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+        //     const vendasHoje = sales.filter(s => new Date(s.date) >= inicioDia);
+        //     const totalDia = vendasHoje.reduce((s, v) => s + v.total, 0);
+        //     const qtdVendas = vendasHoje.length;
+            
+        //     if (qtdVendas === 0) {
+        //         showToast('Não há vendas para fechar hoje!', 'warning');
+        //         return;
+        //     }
+           
+        
+
+
+
+
+            function printReceipt(sale) {
+        let itensStr = '';
+        let itemsList = sale.items;
+        if (typeof itemsList === 'string') { 
+            try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } 
+        }
+        if (itemsList && Array.isArray(itemsList)) {
+            itemsList.forEach(item => { 
+                const nome = item.name.length > 20 ? item.name.substring(0, 18) + '..' : item.name;
+                itensStr += `${nome}\n${item.quantity} x ${item.price.toLocaleString()} MZN     ${(item.price * item.quantity).toLocaleString()} MZN\n`;
+            });
         }
         
-        // ========== FECHO DO DIA - APAGA VENDAS DO SUPABASE ==========
-        window.fechoDoDia = async function() {
-            if (!confirm('⚠️ Tem certeza que deseja fechar o dia? Todas as vendas de hoje serão removidas permanentemente do Supabase.')) return;
-            
-            const hoje = new Date();
-            const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-            const vendasHoje = sales.filter(s => new Date(s.date) >= inicioDia);
-            const totalDia = vendasHoje.reduce((s, v) => s + v.total, 0);
-            const qtdVendas = vendasHoje.length;
-            
-            if (qtdVendas === 0) {
-                showToast('Não há vendas para fechar hoje!', 'warning');
-                return;
+        const receipt = `\n       LIONS FASHION\n Av. Julius Nyerere n°6600\n     Maputo - Moçambique\n\n-----------------------------\n FACTURA: ${sale.invoice}\n DATA: ${new Date(sale.date).toLocaleString('pt-MZ')}\n ATENDENTE: ${sale.seller}\n-----------------------------\n${itensStr}\n-----------------------------\n TOTAL: ${sale.total.toLocaleString()} MZN\n PAGAMENTO: ${sale.payment_method}\n ${sale.payment_method === 'Dinheiro MZN' ? `RECEBIDO: ${sale.received.toLocaleString()} MZN\n TROCO: ${sale.change.toLocaleString()} MZN` : ''}\n-----------------------------\n\n  OBRIGADO PELA PREFERÊNCIA!\n        VOLTE SEMPRE!\n\n`;
+        
+        // Tenta abrir a janela de impressão
+        const win = window.open('', '_blank');
+        if (win) {
+            win.document.write(`<html><head><title>Recibo LIONS</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:2mm;font-size:12pt;white-space:pre-wrap;font-weight:bold;}</style></head><body><pre>${receipt}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
+            win.document.close();
+        } else {
+            // Se o popup for bloqueado, mostra mensagem
+            showToast('⚠️ Permita popups para imprimir o recibo!', 'warning');
+        }
             }
-            
+
+
+
             notificarGerente('📅 Fecho do Dia', `Fechando dia com ${qtdVendas} vendas e total de ${totalDia.toLocaleString()} MZN`, 'warning');
             
             // APAGAR AS VENDAS DE HOJE DO SUPABASE
