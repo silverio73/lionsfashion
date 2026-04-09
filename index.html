@@ -230,7 +230,38 @@
             border: 1px solid rgba(255,255,255,0.2);
         }
         
-        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 20px; }
+        /* Scanner de código de barras */
+        .barcode-scanner {
+            background: rgba(0,0,0,0.5);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(212,175,55,0.3);
+        }
+        
+        .barcode-scanner label {
+            display: block;
+            color: white;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .barcode-scanner input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 2px;
+            font-family: monospace;
+        }
+        
+        .barcode-scanner input:focus {
+            outline: 2px solid var(--primary);
+        }
+        
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 20px; margin-top: 20px; }
         
         .product-card { 
             background: rgba(255,255,255,0.08);
@@ -244,6 +275,7 @@
         .product-card:hover { transform: translateY(-8px); background: rgba(255,255,255,0.2); }
         .product-card .price { color: #f5c542; font-size: 1.3em; font-weight: 800; margin-top: 8px; }
         .product-card h4, .product-card small { color: white; }
+        .product-card .barcode { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 5px; font-family: monospace; }
         
         .cart-item { 
             background: rgba(255,255,255,0.08);
@@ -510,6 +542,8 @@
         let users = [];
         let dataLoaded = false;
         let selectedPaymentMethod = "Dinheiro MZN";
+        let barcodeBuffer = "";
+        let barcodeTimeout = null;
         const CATEGORIAS = ["Calçado", "Vestuário", "Bolsa", "Pasta"];
         
         function notificarGerente(titulo, mensagem, tipo = 'info') {
@@ -523,30 +557,23 @@
             }
         }
         
-        // ========== CARREGAR DADOS APENAS DO SUPABASE (NÃO USA LOCALSTORAGE) ==========
+        // ========== CARREGAR DADOS APENAS DO SUPABASE ==========
         async function loadAllData() {
             try {
                 console.log("🔄 Buscando dados do Supabase...");
-                
                 const [produtosRes, vendasRes, usuariosRes] = await Promise.all([
                     supabaseClient.from('products').select('*'),
                     supabaseClient.from('sales').select('*').order('date', { ascending: false }),
                     supabaseClient.from('users').select('*')
                 ]);
-                
                 if (produtosRes.data) products = produtosRes.data;
-                if (vendasRes.data) {
-                    sales = vendasRes.data;
-                    console.log(`✅ ${sales.length} vendas carregadas do Supabase`);
-                }
+                if (vendasRes.data) sales = vendasRes.data;
                 if (usuariosRes.data) users = usuariosRes.data;
-                
                 dataLoaded = true;
                 document.getElementById('onlineStatus').innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Supabase • Sincronizado';
-                
                 if (currentUser && document.getElementById('pageTitle')?.innerText.includes('Dashboard')) showDashboard();
             } catch (err) {
-                console.error("Erro ao carregar do Supabase:", err);
+                console.error("Erro:", err);
                 dataLoaded = true;
             }
         }
@@ -569,6 +596,70 @@
             if (method === 'Dinheiro MZN') document.getElementById('paymentDinheiro')?.classList.add('active');
             if (method === 'M-pesa') document.getElementById('paymentMpesa')?.classList.add('active');
             if (method === 'E-mola') document.getElementById('paymentEmola')?.classList.add('active');
+        }
+        
+        // ========== ADICIONAR POR CÓDIGO DE BARRAS ==========
+        window.addByBarcode = function() {
+            const barcode = document.getElementById('barcodeInput').value.trim();
+            if (!barcode) {
+                showToast('Digite ou escaneie um código de barras!', 'warning');
+                return;
+            }
+            
+            const product = products.find(p => p.barcode === barcode);
+            if (!product) {
+                showToast('Produto não encontrado!', 'error');
+                document.getElementById('barcodeInput').value = '';
+                document.getElementById('barcodeInput').focus();
+                return;
+            }
+            
+            if (product.stock <= 0) {
+                showToast('Produto sem stock!', 'error');
+                document.getElementById('barcodeInput').value = '';
+                document.getElementById('barcodeInput').focus();
+                return;
+            }
+            
+            addToCart(product.id);
+            document.getElementById('barcodeInput').value = '';
+            document.getElementById('barcodeInput').focus();
+            showToast(`✅ ${product.name} adicionado via código de barras!`, 'success');
+        };
+        
+        // ========== LEITOR DE CÓDIGO DE BARRAS CONTÍNUO ==========
+        function setupBarcodeListener() {
+            document.addEventListener('keydown', function(e) {
+                // Ignora se não estiver no POS ou se tiver um input focado
+                if (document.getElementById('pageTitle')?.innerText !== 'Ponto de Venda') return;
+                if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+                
+                // Ignora teclas de controle
+                if (e.key === 'Enter') {
+                    if (barcodeBuffer.length > 0) {
+                        e.preventDefault();
+                        const product = products.find(p => p.barcode === barcodeBuffer);
+                        if (product) {
+                            addToCart(product.id);
+                            showToast(`✅ ${product.name} adicionado!`, 'success');
+                        } else {
+                            showToast('❌ Produto não encontrado!', 'error');
+                        }
+                        barcodeBuffer = "";
+                        if (barcodeTimeout) clearTimeout(barcodeTimeout);
+                    }
+                    return;
+                }
+                
+                // Acumula caracteres do código de barras
+                if (e.key.length === 1) {
+                    barcodeBuffer += e.key;
+                    if (barcodeTimeout) clearTimeout(barcodeTimeout);
+                    barcodeTimeout = setTimeout(() => {
+                        barcodeBuffer = "";
+                    }, 100);
+                }
+            });
         }
         
         window.processLogin = function() {
@@ -639,6 +730,14 @@
             document.getElementById('mainContent').innerHTML = `
                 <div class="pos-interface">
                     <div class="products-panel">
+                        <div class="barcode-scanner">
+                            <label><i class="fas fa-barcode"></i> Leitor de Código de Barras</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="barcodeInput" placeholder="Digite ou escaneie o código de barras..." style="flex: 1;" autocomplete="off">
+                                <button class="btn btn-primary" onclick="addByBarcode()" style="padding: 12px 20px;"><i class="fas fa-plus"></i> Adicionar</button>
+                            </div>
+                            <small style="color: rgba(255,255,255,0.5); display: block; margin-top: 8px;">🔊 Escaneie o código de barras ou digite manualmente</small>
+                        </div>
                         <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Pesquisar produto..." onkeyup="filterProducts()" style="width:100%;padding:12px;border-radius:24px;border:none;"></div>
                         <div class="products-grid" id="productsGrid" style="margin-top:20px;"></div>
                     </div>
@@ -663,16 +762,18 @@
             `;
             filterProducts();
             updateCartDisplay();
+            document.getElementById('barcodeInput')?.focus();
         }
         
         window.filterProducts = function() {
             const search = document.getElementById('searchInput')?.value.toLowerCase() || '';
-            const filtered = products.filter(p => p.stock > 0 && p.name.toLowerCase().includes(search));
+            const filtered = products.filter(p => p.stock > 0 && (p.name.toLowerCase().includes(search) || (p.barcode && p.barcode.includes(search))));
             document.getElementById('productsGrid').innerHTML = filtered.map(p => `
                 <div class="product-card" onclick="addToCart(${p.id})">
                     <h4>${p.name}</h4>
                     <div class="price">${p.salePrice.toLocaleString()} MZN</div>
                     <small>📦 ${p.category} • Stock: ${p.stock}</small>
+                    ${p.barcode ? `<div class="barcode"><i class="fas fa-barcode"></i> ${p.barcode}</div>` : ''}
                 </div>
             `).join('') || '<p style="text-align:center;color:white;">Nenhum produto encontrado</p>';
         };
@@ -682,7 +783,7 @@
             if (!product) return;
             const existing = currentCart.find(item => item.id === id);
             if (existing) { if (existing.quantity + 1 <= product.stock) existing.quantity++; else showToast('Stock insuficiente!', 'error'); }
-            else { if (product.stock > 0) currentCart.push({ id: product.id, name: product.name, price: product.salePrice, quantity: 1, profit: product.profit }); }
+            else { if (product.stock > 0) currentCart.push({ id: product.id, name: product.name, price: product.salePrice, quantity: 1, profit: product.profit, barcode: product.barcode }); }
             updateCartDisplay();
         };
         
@@ -724,10 +825,7 @@
             if (error) { showToast('Erro: ' + error.message, 'error'); return; }
             for (const item of currentCart) { const prod = products.find(p => p.id === item.id); if (prod) prod.stock -= item.quantity; }
             await saveProducts();
-            
-            // Recarregar dados do Supabase para garantir sincronia
             await loadAllData();
-            
             printReceipt(saleData);
             
             const paymentIcon = paymentMethod === 'M-pesa' ? '📱' : paymentMethod === 'E-mola' ? '📶' : '💰';
@@ -740,200 +838,78 @@
         };
         
         function printReceipt(sale) {
+            if (!sale) return;
             let itensStr = '';
             let itemsList = sale.items;
             if (typeof itemsList === 'string') { try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } }
-            if (itemsList && Array.isArray(itemsList)) itemsList.forEach(item => { const nome = item.name.length > 20 ? item.name.substring(0, 18) + '..' : item.name; itensStr += `${nome}\n${item.quantity} x ${item.price.toLocaleString()} MZN     ${(item.price * item.quantity).toLocaleString()} MZN\n`; });
-            const receipt = `\n      🦁LIONS FASHION\n Av. Julius Nyerere n°6600\n     Maputo - Moçambique\n\n-----------------------------\n FACTURA: ${sale.invoice}\n DATA: ${new Date(sale.date).toLocaleString('pt-MZ')}\n ATENDENTE: ${sale.seller}\n-----------------------------\n${itensStr}\n-----------------------------\n TOTAL: ${sale.total.toLocaleString()} MZN\n PAGAMENTO: ${sale.payment_method}\n ${sale.payment_method === 'Dinheiro MZN' ? `RECEBIDO: ${sale.received.toLocaleString()} MZN\n TROCO: ${sale.change.toLocaleString()} MZN` : ''}\n-----------------------------\n\n  OBRIGADO PELA PREFERÊNCIA!\n        VOLTE SEMPRE!\n\n`;
-            const win = window.open('', '_blank');
-            win.document.write(`<html><head><title>Recibo LIONS</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:2mm;font-size:12pt;white-space:pre-wrap;font-weight:bold;}</style></head><body><pre>${receipt}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
-            win.document.close();
+            if (itemsList && Array.isArray(itemsList)) {
+                itemsList.forEach(item => { 
+                    const nome = item.name.length > 28 ? item.name.substring(0, 26) + '..' : item.name;
+                    const precoItem = item.price.toLocaleString();
+                    const subtotal = (item.price * item.quantity).toLocaleString();
+                    itensStr += `${nome}\n${' '.repeat(8)}${item.quantity} x ${precoItem} MZN     ${subtotal} MZN\n`;
+                });
+            }
+            const dataFormatada = new Date(sale.date).toLocaleString('pt-MZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const linha = '----------------------------------------';
+            const linhaDupla = '========================================';
+            const receipt = `\n\n            🦁LIONS FASHION\n        Av. Julius Nyerere n°6600\n           Maputo - Moçambique\n\n${linhaDupla}\n FACTURA: ${sale.invoice}\n DATA: ${dataFormatada}\n ATENDENTE: ${sale.seller || 'Vendedor'}\n${linha}\n${itensStr}\n${linha}\n TOTAL: ${sale.total.toLocaleString()} MZN\n PAGAMENTO: ${sale.payment_method || 'Dinheiro'}\n${sale.payment_method === 'Dinheiro MZN' ? ` RECEBIDO: ${(sale.received || 0).toLocaleString()} MZN\n TROCO: ${(sale.change || 0).toLocaleString()} MZN` : ''}\n${linhaDupla}\n\n     OBRIGADO PELA PREFERÊNCIA!\n           VOLTE SEMPRE!\n\n`;
+            try {
+                const win = window.open('', '_blank');
+                if (win) {
+                    win.document.write(`<html><head><title>Recibo LIONS</title><style>@page{size:80mm auto;margin:3mm;}body{font-family:'Courier New',monospace;width:80mm;margin:0 auto;padding:2mm;font-size:13pt;white-space:pre-wrap;}pre{margin:0;padding:0;font-family:'Courier New',monospace;font-size:13pt;font-weight:bold;}</style></head><body><pre>${receipt}</pre><script>window.print();setTimeout(()=>window.close(),1500);<\/script></body></html>`);
+                    win.document.close();
+                } else { showToast('⚠️ Permita popups para imprimir o recibo!', 'warning'); }
+            } catch(e) { console.log("Erro ao imprimir:", e.message); }
         }
         
-        // ========== FECHO DO DIA - APAGA VENDAS DO SUPABASE ==========
+        // ========== FECHO DO DIA ==========
         window.fechoDoDia = async function() {
             if (!confirm('⚠️ Tem certeza que deseja fechar o dia? Todas as vendas de hoje serão removidas permanentemente do Supabase.')) return;
-            
             const hoje = new Date();
             const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
             const vendasHoje = sales.filter(s => new Date(s.date) >= inicioDia);
             const totalDia = vendasHoje.reduce((s, v) => s + v.total, 0);
             const qtdVendas = vendasHoje.length;
-            
-            if (qtdVendas === 0) {
-                showToast('Não há vendas para fechar hoje!', 'warning');
-                return;
-            }
-           
-        
-
-
-
-
+            if (qtdVendas === 0) { showToast('Não há vendas para fechar hoje!', 'warning'); return; }
             notificarGerente('📅 Fecho do Dia', `Fechando dia com ${qtdVendas} vendas e total de ${totalDia.toLocaleString()} MZN`, 'warning');
-            
-            // APAGAR AS VENDAS DE HOJE DO SUPABASE
-            for (const venda of vendasHoje) {
-                await supabaseClient.from('sales').delete().eq('id', venda.id);
-            }
-            
-            // Recarregar dados do Supabase
+            for (const venda of vendasHoje) { await supabaseClient.from('sales').delete().eq('id', venda.id); }
             await loadAllData();
-            
             notificarGerente('✅ Fecho do Dia Concluído!', `Dia finalizado! ${qtdVendas} vendas, Total: ${totalDia.toLocaleString()} MZN`, 'success');
-            
-            // Relatório para impressão
             const pagamentos = {};
             vendasHoje.forEach(v => { pagamentos[v.payment_method] = (pagamentos[v.payment_method] || 0) + v.total; });
             let pagStr = '';
             for(let [met, val] of Object.entries(pagamentos)) pagStr += `${met}: ${val.toLocaleString()} MZN\n`;
-            
             const relatorio = `\n      🦁LIONS FASHION\n    RELATÓRIO DE FECHO\n-----------------------------\nDATA: ${hoje.toLocaleDateString('pt-MZ')}\nHORA: ${new Date().toLocaleTimeString()}\nOPERADOR: ${currentUser.name}\n-----------------------------\nTotal Vendas: ${qtdVendas}\nReceita: ${totalDia.toLocaleString()} MZN\n-----------------------------\n${pagStr}\n-----------------------------\n   ✅ FECHO REALIZADO ✅\n`;
-            
             const win = window.open('', '_blank');
-            win.document.write(`<html><head><title>Fecho do Dia</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:2mm;font-size:13pt;white-space:pre-wrap; font-weight:bold;}</style></head><body><pre>${relatorio}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
+            win.document.write(`<html><head><title>Fecho do Dia</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:2mm;font-size:13pt;white-space:pre-wrap;font-weight:bold;}</style></head><body><pre>${relatorio}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
             win.document.close();
-            
             showToast(`✅ Fecho do dia concluído! ${qtdVendas} vendas, ${totalDia.toLocaleString()} MZN`, 'success');
         };
-
-
-
-
-        function printReceipt(sale) {
-    // Verifica se sale existe
-    if (!sale) return;
-    
-    let itensStr = '';
-    let itemsList = sale.items;
-    
-    if (typeof itemsList === 'string') { 
-        try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } 
-    }
-    
-    if (itemsList && Array.isArray(itemsList)) {
-        itemsList.forEach(item => { 
-            const nome = item.name.length > 28 ? item.name.substring(0, 26) + '..' : item.name;
-            const precoItem = item.price.toLocaleString();
-            const subtotal = (item.price * item.quantity).toLocaleString();
-            itensStr += `${nome}\n${' '.repeat(8)}${item.quantity} x ${precoItem} MZN     ${subtotal} MZN\n`;
-        });
-    }
-    
-    const dataFormatada = new Date(sale.date).toLocaleString('pt-MZ', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-    
-    const linha = '----------------------------------------';
-    const linhaDupla = '========================================';
-    
-    const receipt = `
-\n
-            🦁LIONS FASHION
-        Av. Julius Nyerere n°6600
-           Maputo - Moçambique
-\n
-${linhaDupla}
- FACTURA: ${sale.invoice}
- DATA: ${dataFormatada}
- ATENDENTE: ${sale.seller || 'Vendedor'}
-${linha}
-${itensStr}
-${linha}
- TOTAL: ${sale.total.toLocaleString()} MZN
- PAGAMENTO: ${sale.payment_method || 'Dinheiro'}
-${sale.payment_method === 'Dinheiro MZN' ? ` RECEBIDO: ${(sale.received || 0).toLocaleString()} MZN\n TROCO: ${(sale.change || 0).toLocaleString()} MZN` : ''}
-${linhaDupla}
-\n
-     OBRIGADO PELA PREFERÊNCIA!
-           VOLTE SEMPRE!
-\n
-`;
-    
-    // Tenta abrir a janela de impressão
-    try {
-        const win = window.open('', '_blank');
-        if (win) {
-            win.document.write(`<html>
-                <head>
-                    <title>Recibo LIONS</title>
-                    <style>
-                        @page { 
-                            size: 80mm auto; 
-                            margin: 3mm;
-                        }
-                        body { 
-                            font-family: 'Courier New', monospace; 
-                            width: 80mm;
-                            margin: 0 auto;
-                            padding: 2mm;
-                            font-size: 13pt;
-                            white-space: pre-wrap;
-                        }
-                        pre {
-                            margin: 0;
-                            padding: 0;
-                            font-family: 'Courier New', monospace;
-                            font-size: 13pt;
-                            font-weight: bold;
-                        }
-                        @media print {
-                            body { margin: 0; padding: 0; }
-                        }
-                    </style>
-                </head>
-                <body><pre>${receipt}</pre>
-                <script>
-                    window.print();
-                    setTimeout(() => window.close(), 1500);
-                <\/script>
-                </body>
-            </html>`);
-            win.document.close();
-        } else {
-            showToast('⚠️ Permita popups para imprimir o recibo!', 'warning');
-        }
-    } catch(e) {
-        console.log("Erro ao imprimir:", e.message);
-        showToast('Erro ao imprimir recibo', 'error');
-    }
-}
-
-
-
         
-        function showStock() { document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">📦 Gestão de Stock</h2><div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Stock</th><th>Preço</th><th>Ação</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td>${p.category}</td><td style="font-size:1.2em;font-weight:800;">${p.stock}</td><td>${p.salePrice.toLocaleString()} MZN</td><td><button class="btn btn-primary" onclick="updateStock(${p.id})"><i class="fas fa-edit"></i> Ajustar</button></td>`).join('')}</tbody>}</div>`; }
+        function showStock() { document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">📦 Gestão de Stock</h2><div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Stock</th><th>Preço</th><th>Ação</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td style="font-weight:700;">${p.category}</td><td style="font-size:1.2em;font-weight:800;">${p.stock}</td><td style="font-weight:700;">${p.salePrice.toLocaleString()} MZN</td><td><button class="btn btn-primary" onclick="updateStock(${p.id})"><i class="fas fa-edit"></i> Ajustar</button></td></tr>`).join('')}</tbody>}</div>`; }
         window.updateStock = async function(id) { const novo = prompt('Digite a nova quantidade:'); if (novo && !isNaN(novo)) { const prod = products.find(p => p.id === id); if (prod) { prod.stock = parseInt(novo); await saveProducts(); showToast(`Stock de ${prod.name} atualizado!`, 'success'); showStock(); } } };
         
-        function showProducts() { document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">🏷️ Gestão de Produtos</h2><button class="btn btn-primary" onclick="showProductModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Produto</button><div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Compra</th><th>Venda</th><th>Stock</th><th>Ações</th><tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td>${p.category}</td><td>${p.purchasePrice.toLocaleString()} MZN</td><td>${p.salePrice.toLocaleString()} MZN</td><td>${p.stock}</td><td><button class="btn btn-primary" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button> <button class="btn btn-danger" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody></table></div>`; }
+        function showProducts() { document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">🏷️ Gestão de Produtos</h2><button class="btn btn-primary" onclick="showProductModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Produto</button><div class="data-table"><table style="width:100%;"><thead><tr><th>Nome</th><th>Categoria</th><th>Código Barras</th><th>Compra</th><th>Venda</th><th>Stock</th><th>Ações</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td>${p.category}</td><td style="font-family:monospace;">${p.barcode || '—'}</td><td>${p.purchasePrice?.toLocaleString() || 0} MZN</td><td>${p.salePrice.toLocaleString()} MZN</td><td>${p.stock}</td><td><button class="btn btn-primary" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button> <button class="btn btn-danger" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody>}</div>`; }
         
-        window.showProductModal = function(product = null) { const modal = document.createElement('div'); modal.className = 'modal active'; modal.innerHTML = `<div class="modal-content"><h3>${product ? 'Editar Produto' : 'Novo Produto'}</h3><div class="form-group"><label>Nome</label><input type="text" id="prodName" value="${product ? product.name : ''}"></div><div class="form-group"><label>Categoria</label><select id="prodCategory">${CATEGORIAS.map(cat => `<option ${product?.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div><div class="form-group"><label>Preço Compra</label><input type="number" id="prodPurchase" value="${product ? product.purchasePrice : ''}"></div><div class="form-group"><label>Preço Venda</label><input type="number" id="prodSale" value="${product ? product.salePrice : ''}"></div><div class="form-group"><label>Stock</label><input type="number" id="prodStock" value="${product ? product.stock : '0'}"></div><div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()">Cancelar</button><button class="btn btn-success" onclick="saveProduct(${product ? product.id : 'null'})">Salvar</button></div></div>`; document.body.appendChild(modal); };
+        window.showProductModal = function(product = null) { const modal = document.createElement('div'); modal.className = 'modal active'; modal.innerHTML = `<div class="modal-content"><h3>${product ? 'Editar Produto' : 'Novo Produto'}</h3><div class="form-group"><label>Nome</label><input type="text" id="prodName" value="${product ? product.name : ''}"></div><div class="form-group"><label>Categoria</label><select id="prodCategory">${CATEGORIAS.map(cat => `<option ${product?.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div><div class="form-group"><label><i class="fas fa-barcode"></i> Código de Barras</label><input type="text" id="prodBarcode" placeholder="Digite ou escaneie o código de barras" value="${product ? product.barcode || '' : ''}" style="font-family:monospace; letter-spacing:1px;"></div><div class="form-group"><label>Preço Compra (MZN)</label><input type="number" id="prodPurchase" value="${product ? product.purchasePrice : ''}"></div><div class="form-group"><label>Preço Venda (MZN)</label><input type="number" id="prodSale" value="${product ? product.salePrice : ''}"></div><div class="form-group"><label>Stock</label><input type="number" id="prodStock" value="${product ? product.stock : '0'}"></div><div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()">Cancelar</button><button class="btn btn-success" onclick="saveProduct(${product ? product.id : 'null'})">Salvar</button></div></div>`; document.body.appendChild(modal); };
         
-        window.saveProduct = async function(id) { const name = document.getElementById('prodName').value; const category = document.getElementById('prodCategory').value; const purchasePrice = parseFloat(document.getElementById('prodPurchase').value); const salePrice = parseFloat(document.getElementById('prodSale').value); const stock = parseInt(document.getElementById('prodStock').value); const profit = salePrice - purchasePrice; if (!name || isNaN(purchasePrice) || isNaN(salePrice)) { showToast('Preencha todos!', 'error'); return; } if (id) { const idx = products.findIndex(p => p.id === id); if (idx !== -1) products[idx] = { ...products[idx], name, category, purchasePrice, salePrice, stock, profit }; } else { const newId = Math.max(...products.map(p => p.id), 0) + 1; products.push({ id: newId, name, category, purchasePrice, salePrice, stock, profit }); } await saveProducts(); document.querySelector('.modal').remove(); showProducts(); showToast('Produto salvo!', 'success'); };
+        window.saveProduct = async function(id) { const name = document.getElementById('prodName').value; const category = document.getElementById('prodCategory').value; const barcode = document.getElementById('prodBarcode').value.trim(); const purchasePrice = parseFloat(document.getElementById('prodPurchase').value) || 0; const salePrice = parseFloat(document.getElementById('prodSale').value); const stock = parseInt(document.getElementById('prodStock').value); const profit = salePrice - purchasePrice; if (!name || isNaN(salePrice)) { showToast('Preencha nome e preço de venda!', 'error'); return; } if (id) { const idx = products.findIndex(p => p.id === id); if (idx !== -1) products[idx] = { ...products[idx], name, category, barcode: barcode || null, purchasePrice, salePrice, stock, profit }; } else { const newId = Math.max(...products.map(p => p.id), 0) + 1; products.push({ id: newId, name, category, barcode: barcode || null, purchasePrice, salePrice, stock, profit }); } await saveProducts(); document.querySelector('.modal').remove(); showProducts(); showToast('Produto salvo!', 'success'); };
         
         window.editProduct = function(id) { const p = products.find(p => p.id === id); if (p) showProductModal(p); };
         window.deleteProduct = async function(id) { if (confirm('Excluir produto?')) { products = products.filter(p => p.id !== id); await saveProducts(); showProducts(); showToast('Produto excluído!', 'success'); } };
         
-        function showSellers() { const sellerList = users.filter(u => u.role === 'seller'); document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">👥 Gestão de Vendedores</h2><button class="btn btn-primary" onclick="showSellerModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Vendedor</button><div class="data-table"><table style="width:100%;"><thead><tr><th>ID</th><th>Nome</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${sellerList.map(s => `<td><td style="font-weight:700;"><strong>${s.userId}</strong></td><td>${s.name}</td><td>${new Date(s.createdAt).toLocaleDateString()}</td><td><button class="btn btn-danger" onclick="deleteSeller(${s.id})">Excluir</button></td></tr>`).join('')}</tbody></table></div>`; }
-        
+        function showSellers() { const sellerList = users.filter(u => u.role === 'seller'); document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">👥 Gestão de Vendedores</h2><button class="btn btn-primary" onclick="showSellerModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Vendedor</button><div class="data-table"><table style="width:100%;"><thead><tr><th>ID</th><th>Nome</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${sellerList.map(s => `<tr><td style="font-weight:700;">${s.userId}</td><td>${s.name}</td><td>${new Date(s.createdAt).toLocaleDateString()}</td><td><button class="btn btn-danger" onclick="deleteSeller(${s.id})">Excluir</button></td></tr>`).join('')}</tbody>}</div>`; }
         window.showSellerModal = function() { const modal = document.createElement('div'); modal.className = 'modal active'; modal.innerHTML = `<div class="modal-content"><h3>Novo Vendedor</h3><div class="form-group"><label>ID</label><input type="text" id="sellerId" placeholder="VEND002"></div><div class="form-group"><label>Nome</label><input type="text" id="sellerName"></div><div class="form-group"><label>Senha</label><input type="password" id="sellerPass"></div><div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()">Cancelar</button><button class="btn btn-success" onclick="saveSeller()">Cadastrar</button></div></div>`; document.body.appendChild(modal); };
-        
         window.saveSeller = async function() { const userId = document.getElementById('sellerId').value; const name = document.getElementById('sellerName').value; const password = document.getElementById('sellerPass').value; if (!userId || !name || !password) { showToast('Preencha todos!', 'error'); return; } if (users.find(u => u.userId === userId)) { showToast('ID já existe!', 'error'); return; } const newId = Math.max(...users.map(u => u.id), 0) + 1; const newUser = { id: newId, userId, password, name, role: 'seller', createdAt: new Date().toISOString() }; users.push(newUser); await supabaseClient.from('users').upsert(newUser); document.querySelector('.modal').remove(); showSellers(); showToast('Vendedor cadastrado!', 'success'); };
         window.deleteSeller = async function(id) { if (confirm('Excluir vendedor?')) { users = users.filter(u => u.id !== id); await supabaseClient.from('users').delete().eq('id', id); showSellers(); showToast('Vendedor excluído!', 'success'); } };
         
-        function showReports() { const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0); const vendasPorVendedor = {}; sales.forEach(s => { vendasPorVendedor[s.seller] = (vendasPorVendedor[s.seller] || 0) + (s.total || 0); }); document.getElementById('mainContent').innerHTML = `<div class="stats-grid"><div class="stat-card"><h3>Total Vendas</h3><div class="value">${sales.length}</div></div><div class="stat-card"><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:25px;"><div class="data-table" style="padding:20px;"><h3>👤 Vendas por Vendedor</h3><canvas id="vendedorChart"></canvas></div><div class="data-table" style="padding:20px;"><h3>📋 Histórico</h3><div style="max-height:400px;overflow-y:auto;"><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th></tr></thead><tbody>${sales.slice(0, 30).map(s => `<tr><td style="font-weight:600;">${s.invoice}</td><td>${new Date(s.date).toLocaleString()}</td><td>${s.seller}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</td></tr>`).join('') || '<tr><td colspan="4">Sem vendas</td></tr>'}</tbody></table></div></div></div>`; if (typeof Chart !== 'undefined') { new Chart(document.getElementById('vendedorChart'), { type: 'pie', data: { labels: Object.keys(vendasPorVendedor), datasets: [{ data: Object.values(vendasPorVendedor), backgroundColor: ['#f5c542', '#10b981', '#3b82f6', '#ef4444', '#f97316'] }] }, options: { responsive: true } }); } }
+        function showReports() { const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0); const vendasPorVendedor = {}; sales.forEach(s => { vendasPorVendedor[s.seller] = (vendasPorVendedor[s.seller] || 0) + (s.total || 0); }); document.getElementById('mainContent').innerHTML = `<div class="stats-grid"><div class="stat-card"><h3>Total Vendas</h3><div class="value">${sales.length}</div></div><div class="stat-card"><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:25px;"><div class="data-table" style="padding:20px;"><h3>👤 Vendas por Vendedor</h3><canvas id="vendedorChart"></canvas></div><div class="data-table" style="padding:20px;"><h3>📋 Histórico</h3><div style="max-height:400px;overflow-y:auto;"><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th></tr></thead><tbody>${sales.slice(0, 30).map(s => `<tr><td style="font-weight:600;">${s.invoice}</td><td>${new Date(s.date).toLocaleString()}</td><td>${s.seller}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</td></tr>`).join('') || '<tr><td colspan="4">Sem vendas</td></tr>'}</tbody>}</div></div></div>`; if (typeof Chart !== 'undefined') { new Chart(document.getElementById('vendedorChart'), { type: 'pie', data: { labels: Object.keys(vendasPorVendedor), datasets: [{ data: Object.values(vendasPorVendedor), backgroundColor: ['#f5c542', '#10b981', '#3b82f6', '#ef4444', '#f97316'] }] }, options: { responsive: true } }); } }
         
         // ========== INICIALIZAÇÃO ==========
         window.onload = async () => {
-            if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-                Notification.requestPermission();
-            }
+            if (Notification.permission !== 'granted' && Notification.permission !== 'denied') Notification.requestPermission();
             
-            // REALTIME - sincroniza vendas em tempo real no celular do gerente
             supabaseClient.channel('sales-channel')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sales' }, payload => { 
                     if (currentUser && currentUser.role === 'admin') { 
@@ -951,7 +927,8 @@ ${linhaDupla}
                 .subscribe();
             
             await loadAllData();
-            console.log("🦁 LIONS FASHION - Sistema Pronto!");
+            setupBarcodeListener();
+            console.log("🦁 LIONS FASHION - Sistema Pronto com Leitor de Código de Barras!");
         };
     </script>
 </body>
