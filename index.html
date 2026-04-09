@@ -17,6 +17,7 @@
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
+            --info: #3b82f6;
             --mpesa: #6c1e7f;
             --emola: #00a859;
             --gradient-gold: linear-gradient(135deg, #d4af37 0%, #f5c542 50%, #b8941f 100%);
@@ -230,7 +231,6 @@
             border: 1px solid rgba(255,255,255,0.2);
         }
         
-        /* Scanner de código de barras */
         .barcode-scanner {
             background: rgba(0,0,0,0.5);
             border-radius: 16px;
@@ -324,6 +324,7 @@
         .btn-primary { background: linear-gradient(135deg, #fff, #f5c542); color: #764ba2; }
         .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
         .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
         .btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
         
         .notification {
@@ -598,9 +599,33 @@
             if (method === 'E-mola') document.getElementById('paymentEmola')?.classList.add('active');
         }
         
+        // ========== FUNÇÃO DE DEVOLUÇÃO ==========
+        window.devolverProduto = async function() {
+            const nomeProduto = prompt("Digite o nome do produto a ser devolvido:");
+            if (!nomeProduto) return;
+            
+            const produto = products.find(p => p.name.toLowerCase() === nomeProduto.toLowerCase());
+            if (!produto) {
+                showToast('❌ Produto não encontrado!', 'error');
+                return;
+            }
+            
+            // Aumentar stock no Supabase
+            produto.stock += 1;
+            await saveProducts();
+            
+            // Registrar notificação
+            notificarGerente('🔄 Devolução Registrada', `${produto.name} foi devolvido ao stock!`, 'warning');
+            showToast(`✅ ${produto.name} devolvido! Stock atual: ${produto.stock}`, 'success');
+            
+            // Atualizar interfaces
+            if (document.getElementById('pageTitle')?.innerText === 'Gestão de Stock') showStock();
+            if (document.getElementById('productsGrid')) filterProducts();
+        };
+        
         // ========== ADICIONAR POR CÓDIGO DE BARRAS ==========
-        window.addByBarcode = function() {
-            const barcode = document.getElementById('barcodeInput').value.trim();
+        window.addByBarcode = async function() {
+            const barcode = document.getElementById('barcodeInput')?.value.trim();
             if (!barcode) {
                 showToast('Digite ou escaneie um código de barras!', 'warning');
                 return;
@@ -627,21 +652,52 @@
             showToast(`✅ ${product.name} adicionado via código de barras!`, 'success');
         };
         
-        // ========== LEITOR DE CÓDIGO DE BARRAS CONTÍNUO ==========
+        // ========== ESCANEAMENTO PARA GESTÃO DE STOCK ==========
+        window.scanForStock = async function() {
+            const barcode = document.getElementById('stockBarcodeInput')?.value.trim();
+            if (!barcode) {
+                showToast('Digite ou escaneie um código de barras!', 'warning');
+                return;
+            }
+            
+            const product = products.find(p => p.barcode === barcode);
+            if (!product) {
+                showToast('Produto não encontrado!', 'error');
+                document.getElementById('stockBarcodeInput').value = '';
+                document.getElementById('stockBarcodeInput').focus();
+                return;
+            }
+            
+            const novaQuantidade = prompt(`Produto: ${product.name}\nStock atual: ${product.stock}\nDigite a nova quantidade em stock:`);
+            if (novaQuantidade && !isNaN(novaQuantidade)) {
+                product.stock = parseInt(novaQuantidade);
+                await saveProducts();
+                showToast(`✅ Stock de ${product.name} atualizado para ${product.stock}!`, 'success');
+                showStock();
+            }
+            document.getElementById('stockBarcodeInput').value = '';
+            document.getElementById('stockBarcodeInput').focus();
+        };
+        
+        // ========== LEITOR DE CÓDIGO DE BARRAS CONTÍNUO PARA VENDAS ==========
         function setupBarcodeListener() {
             document.addEventListener('keydown', function(e) {
-                // Ignora se não estiver no POS ou se tiver um input focado
+                // Verifica se está no POS
                 if (document.getElementById('pageTitle')?.innerText !== 'Ponto de Venda') return;
-                if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+                if (document.activeElement && document.activeElement.id === 'barcodeInput') return;
+                if (document.activeElement && document.activeElement.tagName === 'INPUT' && document.activeElement.id !== 'barcodeInput') return;
                 
-                // Ignora teclas de controle
                 if (e.key === 'Enter') {
                     if (barcodeBuffer.length > 0) {
                         e.preventDefault();
                         const product = products.find(p => p.barcode === barcodeBuffer);
                         if (product) {
-                            addToCart(product.id);
-                            showToast(`✅ ${product.name} adicionado!`, 'success');
+                            if (product.stock > 0) {
+                                addToCart(product.id);
+                                showToast(`✅ ${product.name} adicionado!`, 'success');
+                            } else {
+                                showToast('❌ Produto sem stock!', 'error');
+                            }
                         } else {
                             showToast('❌ Produto não encontrado!', 'error');
                         }
@@ -651,8 +707,7 @@
                     return;
                 }
                 
-                // Acumula caracteres do código de barras
-                if (e.key.length === 1) {
+                if (e.key.length === 1 && !e.ctrlKey && !e.altKey) {
                     barcodeBuffer += e.key;
                     if (barcodeTimeout) clearTimeout(barcodeTimeout);
                     barcodeTimeout = setTimeout(() => {
@@ -721,7 +776,7 @@
                     <div class="stat-card"><i class="fas fa-calendar-day"></i><h3>Vendas Hoje</h3><div class="value">${vendasHojeTotal.toLocaleString()} MZN</div></div>
                     <div class="stat-card"><i class="fas fa-box"></i><h3>Stock em Mão</h3><div class="value">${totalStock}</div></div>
                 </div>
-                <div class="data-table"><h3 style="padding: 20px;">🏆 Produtos Mais Vendidos</h3><table style="width:100%;"><thead><tr><th>Produto</th><th>Unidades</th></tr></thead><tbody>${topProducts.map(([name, qty]) => `<tr><td style="font-weight:700;"><strong>${name}</strong></td><td style="font-weight:700;">${qty}</td></tr>`).join('') || '<tr><td colspan="2">Sem dados ainda</td>'}</tbody>}</div>
+                <div class="data-table"><h3 style="padding: 20px;">🏆 Produtos Mais Vendidos</h3><table style="width:100%;"><thead><tr><th>Produto</th><th>Unidades</th></tr></thead><tbody>${topProducts.map(([name, qty]) => `<td><td style="font-weight:700;"><strong>${name}</strong></td><td style="font-weight:700;">${qty}</td></tr>`).join('') || '<tr><td colspan="2">Sem dados ainda</td>'}</tbody>}</div>
                 <div class="data-table" style="margin-top: 25px;"><h3 style="padding: 20px;">🔄 Últimas Vendas</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th></tr></thead><tbody>${sales.slice(0, 10).map(s => `<tr><td style="font-weight:600;">${s.invoice || 'N/A'}</td><td>${new Date(s.date).toLocaleString()}</td><td>${s.seller || 'N/A'}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</td></tr>`).join('') || '<tr><td colspan="4">Sem vendas registadas</td>'}</tbody>}</div>
             `;
         }
@@ -756,13 +811,14 @@
                                 </div>
                             </div>
                             <button class="btn btn-success" style="width:100%; margin-top:15px;" onclick="finalizeSale()"><i class="fas fa-check-circle"></i> Finalizar Venda</button>
+                            <button class="btn btn-warning" style="width:100%; margin-top:10px;" onclick="devolverProduto()"><i class="fas fa-undo-alt"></i> Devolver Produto</button>
                         </div>
                     </div>
                 </div>
             `;
             filterProducts();
             updateCartDisplay();
-            document.getElementById('barcodeInput')?.focus();
+            setTimeout(() => document.getElementById('barcodeInput')?.focus(), 100);
         }
         
         window.filterProducts = function() {
@@ -823,7 +879,12 @@
             const saleData = { date: new Date().toISOString(), total: total, items: JSON.stringify(itensLimpos), seller: currentUser?.name || "Vendedor", payment_method: paymentMethod, received: received, change: received - total, invoice: `INV-${Date.now()}` };
             const { error } = await supabaseClient.from('sales').insert([saleData]);
             if (error) { showToast('Erro: ' + error.message, 'error'); return; }
-            for (const item of currentCart) { const prod = products.find(p => p.id === item.id); if (prod) prod.stock -= item.quantity; }
+            
+            // Atualizar stock no Supabase
+            for (const item of currentCart) { 
+                const prod = products.find(p => p.id === item.id); 
+                if (prod) prod.stock -= item.quantity; 
+            }
             await saveProducts();
             await loadAllData();
             printReceipt(saleData);
@@ -887,24 +948,78 @@
             showToast(`✅ Fecho do dia concluído! ${qtdVendas} vendas, ${totalDia.toLocaleString()} MZN`, 'success');
         };
         
-        function showStock() { document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">📦 Gestão de Stock</h2><div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Stock</th><th>Preço</th><th>Ação</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td style="font-weight:700;">${p.category}</td><td style="font-size:1.2em;font-weight:800;">${p.stock}</td><td style="font-weight:700;">${p.salePrice.toLocaleString()} MZN</td><td><button class="btn btn-primary" onclick="updateStock(${p.id})"><i class="fas fa-edit"></i> Ajustar</button></td></tr>`).join('')}</tbody>}</div>`; }
-        window.updateStock = async function(id) { const novo = prompt('Digite a nova quantidade:'); if (novo && !isNaN(novo)) { const prod = products.find(p => p.id === id); if (prod) { prod.stock = parseInt(novo); await saveProducts(); showToast(`Stock de ${prod.name} atualizado!`, 'success'); showStock(); } } };
+        function showStock() { 
+            document.getElementById('mainContent').innerHTML = `
+                <h2 style="color:white;">📦 Gestão de Stock</h2>
+                <div class="barcode-scanner" style="margin-bottom: 20px;">
+                    <label><i class="fas fa-barcode"></i> Escanear para atualizar stock</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="stockBarcodeInput" placeholder="Escaneie o código de barras do produto..." style="flex: 1;" autocomplete="off">
+                        <button class="btn btn-primary" onclick="scanForStock()" style="padding: 12px 20px;"><i class="fas fa-search"></i> Buscar</button>
+                    </div>
+                    <small style="color: rgba(255,255,255,0.5); display: block; margin-top: 8px;">🔊 Escaneie o código para atualizar o stock rapidamente</small>
+                </div>
+                <div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Código Barras</th><th>Stock</th><th>Preço</th><th>Ação</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td>${p.category}</td><td style="font-family:monospace;">${p.barcode || '—'}</td><td style="font-size:1.2em;font-weight:800;">${p.stock}</td><td>${p.salePrice.toLocaleString()} MZN</td><td><button class="btn btn-primary" onclick="updateStock(${p.id})"><i class="fas fa-edit"></i> Ajustar</button></td>`).join('')}</tbody>}</div>
+            `;
+            setTimeout(() => document.getElementById('stockBarcodeInput')?.focus(), 100);
+        }
         
-        function showProducts() { document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">🏷️ Gestão de Produtos</h2><button class="btn btn-primary" onclick="showProductModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Produto</button><div class="data-table"><table style="width:100%;"><thead><tr><th>Nome</th><th>Categoria</th><th>Código Barras</th><th>Compra</th><th>Venda</th><th>Stock</th><th>Ações</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td>${p.category}</td><td style="font-family:monospace;">${p.barcode || '—'}</td><td>${p.purchasePrice?.toLocaleString() || 0} MZN</td><td>${p.salePrice.toLocaleString()} MZN</td><td>${p.stock}</td><td><button class="btn btn-primary" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button> <button class="btn btn-danger" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody>}</div>`; }
+        window.updateStock = async function(id) { 
+            const novo = prompt('Digite a nova quantidade:'); 
+            if (novo && !isNaN(novo)) { 
+                const prod = products.find(p => p.id === id); 
+                if (prod) { 
+                    prod.stock = parseInt(novo); 
+                    await saveProducts(); 
+                    showToast(`Stock de ${prod.name} atualizado!`, 'success'); 
+                    showStock(); 
+                    if(document.getElementById('productsGrid')) filterProducts();
+                } 
+            } 
+        };
         
-        window.showProductModal = function(product = null) { const modal = document.createElement('div'); modal.className = 'modal active'; modal.innerHTML = `<div class="modal-content"><h3>${product ? 'Editar Produto' : 'Novo Produto'}</h3><div class="form-group"><label>Nome</label><input type="text" id="prodName" value="${product ? product.name : ''}"></div><div class="form-group"><label>Categoria</label><select id="prodCategory">${CATEGORIAS.map(cat => `<option ${product?.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div><div class="form-group"><label><i class="fas fa-barcode"></i> Código de Barras</label><input type="text" id="prodBarcode" placeholder="Digite ou escaneie o código de barras" value="${product ? product.barcode || '' : ''}" style="font-family:monospace; letter-spacing:1px;"></div><div class="form-group"><label>Preço Compra (MZN)</label><input type="number" id="prodPurchase" value="${product ? product.purchasePrice : ''}"></div><div class="form-group"><label>Preço Venda (MZN)</label><input type="number" id="prodSale" value="${product ? product.salePrice : ''}"></div><div class="form-group"><label>Stock</label><input type="number" id="prodStock" value="${product ? product.stock : '0'}"></div><div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()">Cancelar</button><button class="btn btn-success" onclick="saveProduct(${product ? product.id : 'null'})">Salvar</button></div></div>`; document.body.appendChild(modal); };
+        function showProducts() { 
+            document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">🏷️ Gestão de Produtos</h2><button class="btn btn-primary" onclick="showProductModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Produto</button><div class="data-table"><table style="width:100%;"><thead><tr><th>Nome</th><th>Categoria</th><th>Código Barras</th><th>Compra</th><th>Venda</th><th>Stock</th><th>Ações</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td>${p.category}</td><td style="font-family:monospace;">${p.barcode || '—'}</td><td>${p.purchasePrice?.toLocaleString() || 0} MZN</td><td>${p.salePrice.toLocaleString()} MZN</td><td>${p.stock}</td><td><button class="btn btn-primary" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button> <button class="btn btn-danger" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button></td>`).join('')}</tbody>}</div>`; 
+        }
         
-        window.saveProduct = async function(id) { const name = document.getElementById('prodName').value; const category = document.getElementById('prodCategory').value; const barcode = document.getElementById('prodBarcode').value.trim(); const purchasePrice = parseFloat(document.getElementById('prodPurchase').value) || 0; const salePrice = parseFloat(document.getElementById('prodSale').value); const stock = parseInt(document.getElementById('prodStock').value); const profit = salePrice - purchasePrice; if (!name || isNaN(salePrice)) { showToast('Preencha nome e preço de venda!', 'error'); return; } if (id) { const idx = products.findIndex(p => p.id === id); if (idx !== -1) products[idx] = { ...products[idx], name, category, barcode: barcode || null, purchasePrice, salePrice, stock, profit }; } else { const newId = Math.max(...products.map(p => p.id), 0) + 1; products.push({ id: newId, name, category, barcode: barcode || null, purchasePrice, salePrice, stock, profit }); } await saveProducts(); document.querySelector('.modal').remove(); showProducts(); showToast('Produto salvo!', 'success'); };
+        window.showProductModal = function(product = null) { 
+            const modal = document.createElement('div'); 
+            modal.className = 'modal active'; 
+            modal.innerHTML = `<div class="modal-content"><h3>${product ? 'Editar Produto' : 'Novo Produto'}</h3><div class="form-group"><label>Nome</label><input type="text" id="prodName" value="${product ? product.name : ''}"></div><div class="form-group"><label>Categoria</label><select id="prodCategory">${CATEGORIAS.map(cat => `<option ${product?.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div><div class="form-group"><label><i class="fas fa-barcode"></i> Código de Barras</label><input type="text" id="prodBarcode" placeholder="Digite ou escaneie o código de barras" value="${product ? product.barcode || '' : ''}" style="font-family:monospace; letter-spacing:1px;"></div><div class="form-group"><label>Preço Compra (MZN)</label><input type="number" id="prodPurchase" value="${product ? product.purchasePrice : ''}"></div><div class="form-group"><label>Preço Venda (MZN)</label><input type="number" id="prodSale" value="${product ? product.salePrice : ''}"></div><div class="form-group"><label>Stock</label><input type="number" id="prodStock" value="${product ? product.stock : '0'}"></div><div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()">Cancelar</button><button class="btn btn-success" onclick="saveProduct(${product ? product.id : 'null'})">Salvar</button></div></div>`; 
+            document.body.appendChild(modal); 
+        };
+        
+        window.saveProduct = async function(id) { 
+            const name = document.getElementById('prodName').value; 
+            const category = document.getElementById('prodCategory').value; 
+            const barcode = document.getElementById('prodBarcode').value.trim(); 
+            const purchasePrice = parseFloat(document.getElementById('prodPurchase').value) || 0; 
+            const salePrice = parseFloat(document.getElementById('prodSale').value); 
+            const stock = parseInt(document.getElementById('prodStock').value); 
+            const profit = salePrice - purchasePrice; 
+            if (!name || isNaN(salePrice)) { showToast('Preencha nome e preço de venda!', 'error'); return; } 
+            if (id) { 
+                const idx = products.findIndex(p => p.id === id); 
+                if (idx !== -1) products[idx] = { ...products[idx], name, category, barcode: barcode || null, purchasePrice, salePrice, stock, profit }; 
+            } else { 
+                const newId = Math.max(...products.map(p => p.id), 0) + 1; 
+                products.push({ id: newId, name, category, barcode: barcode || null, purchasePrice, salePrice, stock, profit }); 
+            } 
+            await saveProducts(); 
+            document.querySelector('.modal').remove(); 
+            showProducts(); 
+            showToast('Produto salvo!', 'success'); 
+        };
         
         window.editProduct = function(id) { const p = products.find(p => p.id === id); if (p) showProductModal(p); };
         window.deleteProduct = async function(id) { if (confirm('Excluir produto?')) { products = products.filter(p => p.id !== id); await saveProducts(); showProducts(); showToast('Produto excluído!', 'success'); } };
         
-        function showSellers() { const sellerList = users.filter(u => u.role === 'seller'); document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">👥 Gestão de Vendedores</h2><button class="btn btn-primary" onclick="showSellerModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Vendedor</button><div class="data-table"><table style="width:100%;"><thead><tr><th>ID</th><th>Nome</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${sellerList.map(s => `<tr><td style="font-weight:700;">${s.userId}</td><td>${s.name}</td><td>${new Date(s.createdAt).toLocaleDateString()}</td><td><button class="btn btn-danger" onclick="deleteSeller(${s.id})">Excluir</button></td></tr>`).join('')}</tbody>}</div>`; }
+        function showSellers() { const sellerList = users.filter(u => u.role === 'seller'); document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">👥 Gestão de Vendedores</h2><button class="btn btn-primary" onclick="showSellerModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Vendedor</button><div class="data-table"><table style="width:100%;"><thead><tr><th>ID</th><th>Nome</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${sellerList.map(s => `<tr><td style="font-weight:700;">${s.userId}</td><td>${s.name}</td><td>${new Date(s.createdAt).toLocaleDateString()}</td><td><button class="btn btn-danger" onclick="deleteSeller(${s.id})">Excluir</button></td>`).join('')}</tbody>}</div>`; }
         window.showSellerModal = function() { const modal = document.createElement('div'); modal.className = 'modal active'; modal.innerHTML = `<div class="modal-content"><h3>Novo Vendedor</h3><div class="form-group"><label>ID</label><input type="text" id="sellerId" placeholder="VEND002"></div><div class="form-group"><label>Nome</label><input type="text" id="sellerName"></div><div class="form-group"><label>Senha</label><input type="password" id="sellerPass"></div><div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()">Cancelar</button><button class="btn btn-success" onclick="saveSeller()">Cadastrar</button></div></div>`; document.body.appendChild(modal); };
         window.saveSeller = async function() { const userId = document.getElementById('sellerId').value; const name = document.getElementById('sellerName').value; const password = document.getElementById('sellerPass').value; if (!userId || !name || !password) { showToast('Preencha todos!', 'error'); return; } if (users.find(u => u.userId === userId)) { showToast('ID já existe!', 'error'); return; } const newId = Math.max(...users.map(u => u.id), 0) + 1; const newUser = { id: newId, userId, password, name, role: 'seller', createdAt: new Date().toISOString() }; users.push(newUser); await supabaseClient.from('users').upsert(newUser); document.querySelector('.modal').remove(); showSellers(); showToast('Vendedor cadastrado!', 'success'); };
         window.deleteSeller = async function(id) { if (confirm('Excluir vendedor?')) { users = users.filter(u => u.id !== id); await supabaseClient.from('users').delete().eq('id', id); showSellers(); showToast('Vendedor excluído!', 'success'); } };
         
-        function showReports() { const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0); const vendasPorVendedor = {}; sales.forEach(s => { vendasPorVendedor[s.seller] = (vendasPorVendedor[s.seller] || 0) + (s.total || 0); }); document.getElementById('mainContent').innerHTML = `<div class="stats-grid"><div class="stat-card"><h3>Total Vendas</h3><div class="value">${sales.length}</div></div><div class="stat-card"><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:25px;"><div class="data-table" style="padding:20px;"><h3>👤 Vendas por Vendedor</h3><canvas id="vendedorChart"></canvas></div><div class="data-table" style="padding:20px;"><h3>📋 Histórico</h3><div style="max-height:400px;overflow-y:auto;"><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th></tr></thead><tbody>${sales.slice(0, 30).map(s => `<tr><td style="font-weight:600;">${s.invoice}</td><td>${new Date(s.date).toLocaleString()}</td><td>${s.seller}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</td></tr>`).join('') || '<tr><td colspan="4">Sem vendas</td></tr>'}</tbody>}</div></div></div>`; if (typeof Chart !== 'undefined') { new Chart(document.getElementById('vendedorChart'), { type: 'pie', data: { labels: Object.keys(vendasPorVendedor), datasets: [{ data: Object.values(vendasPorVendedor), backgroundColor: ['#f5c542', '#10b981', '#3b82f6', '#ef4444', '#f97316'] }] }, options: { responsive: true } }); } }
+        function showReports() { const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0); const vendasPorVendedor = {}; sales.forEach(s => { vendasPorVendedor[s.seller] = (vendasPorVendedor[s.seller] || 0) + (s.total || 0); }); document.getElementById('mainContent').innerHTML = `<div class="stats-grid"><div class="stat-card"><h3>Total Vendas</h3><div class="value">${sales.length}</div></div><div class="stat-card"><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:25px;"><div class="data-table" style="padding:20px;"><h3>👤 Vendas por Vendedor</h3><canvas id="vendedorChart"></canvas></div><div class="data-table" style="padding:20px;"><h3>📋 Histórico</h3><div style="max-height:400px;overflow-y:auto;"><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th></tr></thead><tbody>${sales.slice(0, 30).map(s => `<td><td style="font-weight:600;">${s.invoice}</td><td>${new Date(s.date).toLocaleString()}</td><td>${s.seller}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</td>`).join('') || '<tr><td colspan="4">Sem vendas</td>'}</tbody>}</div></div></div>`; if (typeof Chart !== 'undefined') { new Chart(document.getElementById('vendedorChart'), { type: 'pie', data: { labels: Object.keys(vendasPorVendedor), datasets: [{ data: Object.values(vendasPorVendedor), backgroundColor: ['#f5c542', '#10b981', '#3b82f6', '#ef4444', '#f97316'] }] }, options: { responsive: true } }); } }
         
         // ========== INICIALIZAÇÃO ==========
         window.onload = async () => {
@@ -928,7 +1043,7 @@
             
             await loadAllData();
             setupBarcodeListener();
-            console.log("🦁 LIONS FASHION - Sistema Pronto com Leitor de Código de Barras!");
+            console.log("🦁 LIONS FASHION - Sistema Pronto com Leitor de Código de Barras, Devoluções e Gestão de Stock por Scanner!");
         };
     </script>
 </body>
