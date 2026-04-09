@@ -770,60 +770,76 @@
 
 
 
-            function printReceipt(sale) {
-        let itensStr = '';
-        let itemsList = sale.items;
-        if (typeof itemsList === 'string') { 
-            try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } 
-        }
-        if (itemsList && Array.isArray(itemsList)) {
-            itemsList.forEach(item => { 
-                const nome = item.name.length > 20 ? item.name.substring(0, 18) + '..' : item.name;
-                itensStr += `${nome}\n${item.quantity} x ${item.price.toLocaleString()} MZN     ${(item.price * item.quantity).toLocaleString()} MZN\n`;
-            });
-        }
-        
-        const receipt = `\n       LIONS FASHION\n Av. Julius Nyerere n°6600\n     Maputo - Moçambique\n\n-----------------------------\n FACTURA: ${sale.invoice}\n DATA: ${new Date(sale.date).toLocaleString('pt-MZ')}\n ATENDENTE: ${sale.seller}\n-----------------------------\n${itensStr}\n-----------------------------\n TOTAL: ${sale.total.toLocaleString()} MZN\n PAGAMENTO: ${sale.payment_method}\n ${sale.payment_method === 'Dinheiro MZN' ? `RECEBIDO: ${sale.received.toLocaleString()} MZN\n TROCO: ${sale.change.toLocaleString()} MZN` : ''}\n-----------------------------\n\n  OBRIGADO PELA PREFERÊNCIA!\n        VOLTE SEMPRE!\n\n`;
-        
-        // Tenta abrir a janela de impressão
+        //     notificarGerente('📅 Fecho do Dia', `Fechando dia com ${qtdVendas} vendas e total de ${totalDia.toLocaleString()} MZN`, 'warning');
+            
+        //     // APAGAR AS VENDAS DE HOJE DO SUPABASE
+        //     for (const venda of vendasHoje) {
+        //         await supabaseClient.from('sales').delete().eq('id', venda.id);
+        //     }
+            
+        //     // Recarregar dados do Supabase
+        //     await loadAllData();
+            
+        //     notificarGerente('✅ Fecho do Dia Concluído!', `Dia finalizado! ${qtdVendas} vendas, Total: ${totalDia.toLocaleString()} MZN`, 'success');
+            
+        //     // Relatório para impressão
+        //     const pagamentos = {};
+        //     vendasHoje.forEach(v => { pagamentos[v.payment_method] = (pagamentos[v.payment_method] || 0) + v.total; });
+        //     let pagStr = '';
+        //     for(let [met, val] of Object.entries(pagamentos)) pagStr += `${met}: ${val.toLocaleString()} MZN\n`;
+            
+        //     const relatorio = `\n       LIONS FASHION\n    RELATÓRIO DE FECHO\n-----------------------------\nDATA: ${hoje.toLocaleDateString('pt-MZ')}\nHORA: ${new Date().toLocaleTimeString()}\nOPERADOR: ${currentUser.name}\n-----------------------------\nTotal Vendas: ${qtdVendas}\nReceita: ${totalDia.toLocaleString()} MZN\n-----------------------------\n${pagStr}\n-----------------------------\n   ✅ FECHO REALIZADO ✅\n`;
+            
+        //     const win = window.open('', '_blank');
+        //     win.document.write(`<html><head><title>Fecho do Dia</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:2mm;font-size:13pt;white-space:pre-wrap; font-weight:bold;}</style></head><body><pre>${relatorio}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
+        //     win.document.close();
+            
+        //     showToast(`✅ Fecho do dia concluído! ${qtdVendas} vendas, ${totalDia.toLocaleString()} MZN`, 'success');
+        // };
+
+
+
+
+
+
+        function printReceipt(sale) {
+    // Verifica se sale existe
+    if (!sale) return;
+    
+    let itensStr = '';
+    let itemsList = sale.items;
+    
+    if (typeof itemsList === 'string') { 
+        try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } 
+    }
+    
+    if (itemsList && Array.isArray(itemsList)) {
+        itemsList.forEach(item => { 
+            const nome = item.name.length > 20 ? item.name.substring(0, 18) + '..' : item.name;
+            itensStr += `${nome}\n${item.quantity} x ${item.price.toLocaleString()} MZN     ${(item.price * item.quantity).toLocaleString()} MZN\n`;
+        });
+    }
+    
+    const receipt = `\n       LIONS FASHION\n Av. Julius Nyerere n°6600\n     Maputo - Moçambique\n\n-----------------------------\n FACTURA: ${sale.invoice}\n DATA: ${new Date(sale.date).toLocaleString('pt-MZ')}\n ATENDENTE: ${sale.seller}\n-----------------------------\n${itensStr}\n-----------------------------\n TOTAL: ${sale.total.toLocaleString()} MZN\n PAGAMENTO: ${sale.payment_method}\n ${sale.payment_method === 'Dinheiro MZN' ? `RECEBIDO: ${sale.received.toLocaleString()} MZN\n TROCO: ${sale.change.toLocaleString()} MZN` : ''}\n-----------------------------\n\n  OBRIGADO PELA PREFERÊNCIA!\n        VOLTE SEMPRE!\n\n`;
+    
+    // 🔧 CORREÇÃO: Verificar se window está disponível
+    if (typeof window === 'undefined') return;
+    
+    try {
         const win = window.open('', '_blank');
         if (win) {
             win.document.write(`<html><head><title>Recibo LIONS</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:2mm;font-size:12pt;white-space:pre-wrap;font-weight:bold;}</style></head><body><pre>${receipt}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
             win.document.close();
         } else {
-            // Se o popup for bloqueado, mostra mensagem
-            showToast('⚠️ Permita popups para imprimir o recibo!', 'warning');
+            // Se o popup for bloqueado, apenas loga no console, sem erro
+            console.log("Popup bloqueado pelo navegador. Permita popups para imprimir recibos.");
         }
-            }
+    } catch(e) {
+        console.log("Erro ao imprimir:", e.message);
+    }
+}
 
 
-
-            notificarGerente('📅 Fecho do Dia', `Fechando dia com ${qtdVendas} vendas e total de ${totalDia.toLocaleString()} MZN`, 'warning');
-            
-            // APAGAR AS VENDAS DE HOJE DO SUPABASE
-            for (const venda of vendasHoje) {
-                await supabaseClient.from('sales').delete().eq('id', venda.id);
-            }
-            
-            // Recarregar dados do Supabase
-            await loadAllData();
-            
-            notificarGerente('✅ Fecho do Dia Concluído!', `Dia finalizado! ${qtdVendas} vendas, Total: ${totalDia.toLocaleString()} MZN`, 'success');
-            
-            // Relatório para impressão
-            const pagamentos = {};
-            vendasHoje.forEach(v => { pagamentos[v.payment_method] = (pagamentos[v.payment_method] || 0) + v.total; });
-            let pagStr = '';
-            for(let [met, val] of Object.entries(pagamentos)) pagStr += `${met}: ${val.toLocaleString()} MZN\n`;
-            
-            const relatorio = `\n       LIONS FASHION\n    RELATÓRIO DE FECHO\n-----------------------------\nDATA: ${hoje.toLocaleDateString('pt-MZ')}\nHORA: ${new Date().toLocaleTimeString()}\nOPERADOR: ${currentUser.name}\n-----------------------------\nTotal Vendas: ${qtdVendas}\nReceita: ${totalDia.toLocaleString()} MZN\n-----------------------------\n${pagStr}\n-----------------------------\n   ✅ FECHO REALIZADO ✅\n`;
-            
-            const win = window.open('', '_blank');
-            win.document.write(`<html><head><title>Fecho do Dia</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:2mm;font-size:13pt;white-space:pre-wrap; font-weight:bold;}</style></head><body><pre>${relatorio}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
-            win.document.close();
-            
-            showToast(`✅ Fecho do dia concluído! ${qtdVendas} vendas, ${totalDia.toLocaleString()} MZN`, 'success');
-        };
         
         function showStock() { document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">📦 Gestão de Stock</h2><div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Stock</th><th>Preço</th><th>Ação</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td>${p.category}</td><td style="font-size:1.2em;font-weight:800;">${p.stock}</td><td>${p.salePrice.toLocaleString()} MZN</td><td><button class="btn btn-primary" onclick="updateStock(${p.id})"><i class="fas fa-edit"></i> Ajustar</button></td>`).join('')}</tbody>}</div>`; }
         window.updateStock = async function(id) { const novo = prompt('Digite a nova quantidade:'); if (novo && !isNaN(novo)) { const prod = products.find(p => p.id === id); if (prod) { prod.stock = parseInt(novo); await saveProducts(); showToast(`Stock de ${prod.name} atualizado!`, 'success'); showStock(); } } };
