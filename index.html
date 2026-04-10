@@ -1025,7 +1025,7 @@
             const linha = '----------------------------------------';
             const linhaDupla = '========================================';
             // RECIBO SEM LUCRO (removida a linha de lucro)
-            const receipt = `\n\n            🦁LIONS FASHION\n        Av. Julius Nyerere n°6600\n           Maputo - Moçambique\n\n${linhaDupla}\n FACTURA: ${sale.invoice}\n DATA: ${dataFormatada}\n ATENDENTE: ${sale.seller || 'Vendedor'}\n${linha}\n${itensStr}\n${linha}\n TOTAL: ${sale.total.toLocaleString()} MZN\n PAGAMENTO: ${sale.payment_method || 'Dinheiro'}\n${sale.payment_method === 'Dinheiro MZN' ? ` RECEBIDO: ${(sale.received || 0).toLocaleString()} MZN\n TROCO: ${(sale.change || 0).toLocaleString()} MZN` : ''}\n${linhaDupla}\n\n     OBRIGADO PELA PREFERÊNCIA!\n           VOLTE SEMPRE!\n\n`;
+            const receipt = `\n\n LIONS FASHION\n        Av. Julius Nyerere n°6600\n           Maputo - Moçambique\n\n${linhaDupla}\n FACTURA: ${sale.invoice}\n DATA: ${dataFormatada}\n ATENDENTE: ${sale.seller || 'Vendedor'}\n${linha}\n${itensStr}\n${linha}\n TOTAL: ${sale.total.toLocaleString()} MZN\n PAGAMENTO: ${sale.payment_method || 'Dinheiro'}\n${sale.payment_method === 'Dinheiro MZN' ? ` RECEBIDO: ${(sale.received || 0).toLocaleString()} MZN\n TROCO: ${(sale.change || 0).toLocaleString()} MZN` : ''}\n${linhaDupla}\n\n   OBRIGADO PELA PREFERÊNCIA!\n       VOLTE SEMPRE!\n\n`;
             try {
                 const win = window.open('', '_blank');
                 if (win) {
@@ -1053,7 +1053,7 @@
             vendasHoje.forEach(v => { pagamentos[v.payment_method] = (pagamentos[v.payment_method] || 0) + v.total; });
             let pagStr = '';
             for(let [met, val] of Object.entries(pagamentos)) pagStr += `${met}: ${val.toLocaleString()} MZN\n`;
-            const relatorio = `\n      🦁LIONS FASHION\n    RELATÓRIO DE FECHO\n-----------------------------\nDATA: ${hoje.toLocaleDateString('pt-MZ')}\nHORA: ${new Date().toLocaleTimeString()}\nOPERADOR: ${currentUser.name}\n-----------------------------\nTotal Vendas: ${qtdVendas}\nReceita: ${totalDia.toLocaleString()} MZN\n-----------------------------\n${pagStr}\n-----------------------------\n   ✅ FECHO REALIZADO ✅\n`;
+            const relatorio = `\n  LIONS FASHION\n    RELATÓRIO DE FECHO\n-----------------------------\nDATA: ${hoje.toLocaleDateString('pt-MZ')}\nHORA: ${new Date().toLocaleTimeString()}\nOPERADOR: ${currentUser.name}\n-----------------------------\nTotal Vendas: ${qtdVendas}\nReceita: ${totalDia.toLocaleString()} MZN\n-----------------------------\n${pagStr}\n-----------------------------\n   ✅ FECHO REALIZADO ✅\n`;
             const win = window.open('', '_blank');
             win.document.write(`<html><head><title>Fecho do Dia</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:2mm;font-size:13pt;white-space:pre-wrap;font-weight:bold;}</style></head><body><pre>${relatorio}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
             win.document.close();
