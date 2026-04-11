@@ -872,8 +872,8 @@
                     <div class="stat-card"><i class="fas fa-calendar-day"></i><h3>Vendas Hoje</h3><div class="value">${vendasHojeTotal.toLocaleString()} MZN</div></div>
                     <div class="stat-card profit-card"><i class="fas fa-coins"></i><h3>Lucro Hoje</h3><div class="value profit-value">${lucroHoje.toLocaleString()} MZN</div></div>
                 </div>
-                <div class="data-table"><h3 style="padding: 20px;">🏆 Produtos Mais Vendidos</h3><table style="width:100%;"><thead><tr><th>Produto</th><th>Unidades</th></tr></thead><tbody>${topProducts.map(([name, qty]) => `<tr><td style="font-weight:700;"><strong>${name}</strong></td><td style="font-weight:700;">${qty}</td></tr>`).join('') || '<td><td colspan="2">Sem dados ainda</td>'}</tbody>}</div>
-                <div class="data-table" style="margin-top: 25px;"><h3 style="padding: 20px;">🔄 Últimas Vendas</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 10).map(s => `<td><td style="font-weight:600;">${s.invoice || 'N/A'}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller || 'N/A'}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</td><td style="color:#7986cb;">${(s.profit || 0).toLocaleString()} MZN</td>`).join('') || '<tr><td colspan="5">Sem vendas registadas</td></tr>'}</tbody>}</div>
+                <div class="data-table"><h3 style="padding: 20px;">🏆 Produtos Mais Vendidos</h3><table style="width:100%;"><thead><tr><th>Produto</th><th>Unidades</th></tr></thead><tbody>${topProducts.map(([name, qty]) => `<td><td style="font-weight:700;"><strong>${name}</strong></td><td style="font-weight:700;">${qty}</td></tr>`).join('') || '<td><td colspan="2">Sem dados ainda</td>'}</tbody>}</div>
+                <div class="data-table" style="margin-top: 25px;"><h3 style="padding: 20px;">🔄 Últimas Vendas</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 10).map(s => `<tr><td style="font-weight:600;">${s.invoice || 'N/A'}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller || 'N/A'}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</td><td style="color:#7986cb;">${(s.profit || 0).toLocaleString()} MZN</td></tr>`).join('') || '<tr><td colspan="5">Sem vendas registadas</td>'}</tbody>}</div>
             `;
         }
         
@@ -1023,7 +1023,7 @@
             showToast(`✅ Venda de ${total.toLocaleString()} MZN registrada via ${paymentMethod}!`, 'success');
         };
         
-        // ========== RECIBO CENTRALIZADO E COM ESPAÇAMENTO ==========
+        // ========== RECIBO CORRIGIDO - MAIS CURTO E CENTRALIZADO ==========
         function printReceipt(sale) {
             if (!sale) return;
             let itensStr = '';
@@ -1031,73 +1031,58 @@
             if (typeof itemsList === 'string') { try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } }
             if (itemsList && Array.isArray(itemsList)) {
                 itemsList.forEach(item => { 
-                    const nome = item.name.length > 32 ? item.name.substring(0, 30) + '..' : item.name;
+                    const nome = item.name.length > 28 ? item.name.substring(0, 26) + '..' : item.name;
                     const precoItem = item.price.toLocaleString();
                     const subtotal = (item.price * item.quantity).toLocaleString();
-                    itensStr += `${nome}\n          ${item.quantity} x ${precoItem} MZN     ${subtotal} MZN\n\n`;
+                    itensStr += `${nome}\n${item.quantity} x ${precoItem} MZN     ${subtotal} MZN\n`;
                 });
             }
             const dataFormatada = new Date(sale.date).toLocaleString('pt-MZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-            const linha = '────────────────────────────────────────';
-            const linhaDupla = '════════════════════════════════════════';
+            const linha = '--------------------------------';
+            const linhaDupla = '================================';
             
             const receipt = `
-\n
-${' '.repeat(10)}🦁 LIONS FASHION
-${' '.repeat(8)}Av. Julius Nyerere n°6600
-${' '.repeat(12)}Maputo - Moçambique
-
-${linhaDupla}
-
-${' '.repeat(12)}FACTURA: ${sale.invoice}
-${' '.repeat(14)}DATA: ${dataFormatada}
-${' '.repeat(10)}ATENDENTE: ${sale.seller || 'Vendedor'}
-
-${linha}
-
+================================
+      🦁 LIONS FASHION
+   Av. Julius Nyerere n°6600
+      Maputo - Moçambique
+================================
+FACTURA: ${sale.invoice}
+DATA: ${dataFormatada}
+ATENDENTE: ${sale.seller || 'Vendedor'}
+--------------------------------
 ${itensStr}
-${linha}
-
-${' '.repeat(14)}TOTAL: ${sale.total.toLocaleString()} MZN
-${' '.repeat(10)}PAGAMENTO: ${sale.payment_method || 'Dinheiro'}
-${sale.payment_method === 'Dinheiro MZN' ? `${' '.repeat(10)}RECEBIDO: ${(sale.received || 0).toLocaleString()} MZN\n${' '.repeat(14)}TROCO: ${(sale.change || 0).toLocaleString()} MZN` : ''}
-
-${linhaDupla}
-
-${' '.repeat(10)}OBRIGADO PELA PREFERÊNCIA!
-${' '.repeat(14)}VOLTE SEMPRE!
-
-\n
+--------------------------------
+TOTAL: ${sale.total.toLocaleString()} MZN
+PAGAMENTO: ${sale.payment_method || 'Dinheiro'}
+${sale.payment_method === 'Dinheiro MZN' ? `RECEBIDO: ${(sale.received || 0).toLocaleString()} MZN\nTROCO: ${(sale.change || 0).toLocaleString()} MZN` : ''}
+================================
+   OBRIGADO PELA PREFERÊNCIA!
+         VOLTE SEMPRE!
+================================
 `;
             try {
                 const win = window.open('', '_blank');
                 if (win) {
                     win.document.write(`<html><head><title>Recibo LIONS</title><style>
-                        @page { size: 80mm auto; margin: 5mm; }
+                        @page { size: 80mm auto; margin: 3mm; }
                         body { 
                             font-family: 'Courier New', monospace; 
                             width: 80mm;
                             margin: 0 auto;
-                            padding: 3mm;
-                            font-size: 12pt;
+                            padding: 2mm;
+                            font-size: 10pt;
                             white-space: pre-wrap;
-                            line-height: 1.6;
                             text-align: center;
-                            font-weight: bold;
                         }
                         pre {
                             margin: 0;
                             padding: 0;
                             font-family: 'Courier New', monospace;
-                            font-size: 12pt;
-                            font-weight: normal;
+                            font-size: 10pt;
                             text-align: center;
-                            font-weight: bold;
                         }
-                        @media print {
-                            body { margin: 0; padding: 0; }
-                        }
-                    </style></head><body><pre>${receipt}</pre><script>window.print();setTimeout(()=>window.close(),1500);<\/script></body></html>`);
+                    </style></head><body><pre>${receipt}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
                     win.document.close();
                 } else { showToast('⚠️ Permita popups para imprimir o recibo!', 'warning'); }
             } catch(e) { console.log("Erro ao imprimir:", e.message); }
@@ -1140,7 +1125,7 @@ ${' '.repeat(14)}VOLTE SEMPRE!
                     <div id="productInfo" style="margin-top: 10px;"></div>
                     <small style="color: #cbd5e1; display: block; margin-top: 8px;">🔊 Escaneie o código para ver informações e atualizar o stock rapidamente</small>
                 </div>
-                <div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Código Barras</th><th>Stock</th><th>Preço Compra</th><th>Preço Venda</th><th>Lucro Unitário</th><th>Ação</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td style="font-weight:700;">${p.category}</td><td style="font-family:monospace;">${p.barcode || '—'}</td><td style="font-size:1.2em;font-weight:800;color:#7986cb;">${p.stock}</td><td style="font-weight:700;">${(p.purchasePrice || 0).toLocaleString()} MZN</td><td style="font-weight:700;">${p.salePrice.toLocaleString()} MZN</td><td style="color:#7986cb;">${((p.salePrice - (p.purchasePrice || 0))).toLocaleString()} MZN</td><td><button class="btn btn-primary" onclick="updateStock(${p.id})"><i class="fas fa-edit"></i> Ajustar</button></td>`).join('')}</tbody>}</div>
+                <div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Código Barras</th><th>Stock</th><th>Preço Compra</th><th>Preço Venda</th><th>Lucro Unitário</th><th>Ação</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td style="font-weight:700;">${p.category}</td><td style="font-family:monospace;">${p.barcode || '—'}</td><td style="font-size:1.2em;font-weight:800;color:#7986cb;">${p.stock}</td><td style="font-weight:700;">${(p.purchasePrice || 0).toLocaleString()} MZN</p><p style="font-weight:700;">${p.salePrice.toLocaleString()} MZN</p><p style="color:#7986cb;">${((p.salePrice - (p.purchasePrice || 0))).toLocaleString()} MZN</p><p><button class="btn btn-primary" onclick="updateStock(${p.id})"><i class="fas fa-edit"></i> Ajustar</button></p>`).join('')}</tbody>}</div>
             `;
             setTimeout(() => document.getElementById('stockBarcodeInput')?.focus(), 100);
         }
@@ -1160,7 +1145,7 @@ ${' '.repeat(14)}VOLTE SEMPRE!
         };
         
         function showProducts() { 
-            document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">🏷️ Gestão de Produtos</h2><button class="btn btn-primary" onclick="showProductModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Produto</button><div class="data-table"><table style="width:100%;"><thead><tr><th>Nome</th><th>Categoria</th><th>Código Barras</th><th>Compra</th><th>Venda</th><th>Lucro</th><th>Stock</th><th>Ações</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td>${p.category}</td><td style="font-family:monospace;">${p.barcode || '—'}</td><td>${(p.purchasePrice?.toLocaleString() || 0)} MZN</td><td>${p.salePrice.toLocaleString()} MZN</td><td style="color:#7986cb;">${((p.salePrice - (p.purchasePrice || 0))).toLocaleString()} MZN</td><td>${p.stock}</td><td><button class="btn btn-primary" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button> <button class="btn btn-danger" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button></td>`).join('')}</tbody>}</div>`; 
+            document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">🏷️ Gestão de Produtos</h2><button class="btn btn-primary" onclick="showProductModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Produto</button><div class="data-table"><table style="width:100%;"><thead><tr><th>Nome</th><th>Categoria</th><th>Código Barras</th><th>Compra</th><th>Venda</th><th>Lucro</th><th>Stock</th><th>Ações</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td style="font-weight:700;">${p.category}</td><td style="font-family:monospace;">${p.barcode || '—'}</td><td style="font-weight:700;">${(p.purchasePrice?.toLocaleString() || 0)} MZN</p><p style="font-weight:700;">${p.salePrice.toLocaleString()} MZN</p><p style="color:#7986cb;">${((p.salePrice - (p.purchasePrice || 0))).toLocaleString()} MZN</p><p style="font-weight:700;">${p.stock}</p><p><button class="btn btn-primary" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button> <button class="btn btn-danger" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button></p>`).join('')}</tbody>}</div>`; 
         }
         
         window.showProductModal = function(product = null) { 
@@ -1202,7 +1187,7 @@ ${' '.repeat(14)}VOLTE SEMPRE!
         window.saveSeller = async function() { const userId = document.getElementById('sellerId').value; const name = document.getElementById('sellerName').value; const password = document.getElementById('sellerPass').value; if (!userId || !name || !password) { showToast('Preencha todos!', 'error'); return; } if (users.find(u => u.userId === userId)) { showToast('ID já existe!', 'error'); return; } const newId = Math.max(...users.map(u => u.id), 0) + 1; const newUser = { id: newId, userId, password, name, role: 'seller', createdAt: new Date().toISOString() }; users.push(newUser); await supabaseClient.from('users').upsert(newUser); document.querySelector('.modal').remove(); showSellers(); showToast('Vendedor cadastrado!', 'success'); };
         window.deleteSeller = async function(id) { if (confirm('Excluir vendedor?')) { users = users.filter(u => u.id !== id); await supabaseClient.from('users').delete().eq('id', id); showSellers(); showToast('Vendedor excluído!', 'success'); } };
         
-        function showReports() { const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0); const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0); const vendasPorVendedor = {}; sales.forEach(s => { vendasPorVendedor[s.seller] = (vendasPorVendedor[s.seller] || 0) + (s.total || 0); }); document.getElementById('mainContent').innerHTML = `<div class="stats-grid"><div class="stat-card"><h3>Total Vendas</h3><div class="value">${sales.length}</div></div><div class="stat-card"><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div><div class="stat-card profit-card"><h3>Lucro Total</h3><div class="value profit-value">${totalProfit.toLocaleString()} MZN</div></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:25px;"><div class="data-table" style="padding:20px;"><h3>👤 Vendas por Vendedor</h3><canvas id="vendedorChart"></canvas></div><div class="data-table" style="padding:20px;"><h3>📋 Histórico</h3><div style="max-height:400px;overflow-y:auto;"><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 30).map(s => `<tr><td style="font-weight:600;">${s.invoice}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</td><td style="color:#7986cb;">${(s.profit || 0).toLocaleString()} MZN</td>`).join('') || '<tr><td colspan="5">Sem vendas</td>'}</tbody>}</div></div></div>`; if (typeof Chart !== 'undefined') { new Chart(document.getElementById('vendedorChart'), { type: 'pie', data: { labels: Object.keys(vendasPorVendedor), datasets: [{ data: Object.values(vendasPorVendedor), backgroundColor: ['#1a237e', '#283593', '#3f51b5', '#5c6bc0', '#7986cb'] }] }, options: { responsive: true } }); } }
+        function showReports() { const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0); const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0); const vendasPorVendedor = {}; sales.forEach(s => { vendasPorVendedor[s.seller] = (vendasPorVendedor[s.seller] || 0) + (s.total || 0); }); document.getElementById('mainContent').innerHTML = `<div class="stats-grid"><div class="stat-card"><h3>Total Vendas</h3><div class="value">${sales.length}</div></div><div class="stat-card"><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div><div class="stat-card profit-card"><h3>Lucro Total</h3><div class="value profit-value">${totalProfit.toLocaleString()} MZN</div></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:25px;"><div class="data-table" style="padding:20px;"><h3>👤 Vendas por Vendedor</h3><canvas id="vendedorChart"></canvas></div><div class="data-table" style="padding:20px;"><h3>📋 Histórico</h3><div style="max-height:400px;overflow-y:auto;"><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 30).map(s => `<td><td style="font-weight:600;">${s.invoice}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</p><p style="color:#7986cb;">${(s.profit || 0).toLocaleString()} MZN</p>`).join('') || '<tr><td colspan="5">Sem vendas</p>'}</tbody>}</div></div></div>`; if (typeof Chart !== 'undefined') { new Chart(document.getElementById('vendedorChart'), { type: 'pie', data: { labels: Object.keys(vendasPorVendedor), datasets: [{ data: Object.values(vendasPorVendedor), backgroundColor: ['#1a237e', '#283593', '#3f51b5', '#5c6bc0', '#7986cb'] }] }, options: { responsive: true } }); } }
         
         // ========== INICIALIZAÇÃO ==========
         window.onload = async () => {
