@@ -1071,16 +1071,18 @@ ${sale.payment_method === 'Dinheiro MZN' ? `RECEBIDO: ${(sale.received || 0).toL
                             width: 80mm;
                             margin: 0 auto;
                             padding: 2mm;
-                            font-size: 10pt;
+                            font-size: 12pt;
                             white-space: pre-wrap;
                             text-align: center;
+                            font-weight: bold;
                         }
                         pre {
                             margin: 0;
                             padding: 0;
                             font-family: 'Courier New', monospace;
-                            font-size: 10pt;
+                            font-size: 12pt;
                             text-align: center;
+                            font-weight: bold;
                         }
                     </style></head><body><pre>${receipt}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
                     win.document.close();
