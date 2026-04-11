@@ -27,6 +27,7 @@
             --gradient-bg: linear-gradient(135deg, #0a0a2a 0%, #0a0a2f 25%, #0a0a25 50%, #050520 75%, #0a0a25 100%);
             --shadow-neon: 0 0 20px rgba(0, 191, 255, 0.5);
             --shadow-3d: 0 15px 35px rgba(0, 0, 0, 0.3);
+            --gradient-gold: linear-gradient(135deg, #ffd700, #ffb347, #ff8c00);
         }
         
         body { 
@@ -66,7 +67,6 @@
             to { transform: translateX(0); opacity: 1; }
         }
         
-        /* Efeito 3D HD para os produtos do Ponto de Venda */
         @keyframes productGlow {
             0% { box-shadow: 0 0 0 0 rgba(0, 191, 255, 0.4); }
             70% { box-shadow: 0 0 0 15px rgba(0, 191, 255, 0); }
@@ -358,7 +358,6 @@
         
         .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 20px; margin-top: 20px; }
         
-        /* EFEITO 3D HD E ACENDIMENTO PARA PRODUTOS DO PONTO DE VENDA */
         .product-card { 
             background: rgba(0, 191, 255, 0.1);
             border-radius: 20px; 
@@ -673,7 +672,6 @@
             letter-spacing: -0.5px;
         }
         
-        /* Cor do número de produtos - BRANCO */
         .products-premium-title i, 
         .products-premium-title span {
             color: white !important;
@@ -714,7 +712,6 @@
             box-shadow: 0 15px 35px -15px rgba(0,0,0,0.5);
         }
         
-        /* EFEITO DIVINO AO PASSAR O MOUSE */
         .product-card-3d:hover {
             transform: translateY(-12px) rotateX(3deg) scale(1.02);
             border-color: #ffd700;
@@ -832,6 +829,50 @@
             color: var(--primary);
             margin-bottom: 20px;
         }
+
+        /* ESTILOS PARA LUCROS MENSAIS */
+        .monthly-profit-card {
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.15), rgba(0, 191, 255, 0.2));
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            border-radius: 32px;
+            padding: 25px;
+            margin-bottom: 25px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .monthly-profit-total {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffd700, #ffb347);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .profit-product-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            margin: 8px 0;
+            background: rgba(0, 191, 255, 0.1);
+            border-radius: 16px;
+            transition: all 0.3s;
+        }
+        
+        .profit-product-row:hover {
+            background: rgba(255, 215, 0, 0.2);
+            transform: translateX(5px);
+        }
+        
+        .reset-info {
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            margin-top: 15px;
+            padding: 8px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+        }
     </style>
 </head>
 <body>
@@ -869,6 +910,7 @@
             <div class="nav-item" onclick="navigateTo('pos')"><i class="fas fa-shopping-cart"></i> <span>Ponto de Venda</span></div>
             <div class="nav-item admin-only" onclick="navigateTo('stock')" style="display:none;"><i class="fas fa-boxes"></i> <span>Gestão de Stock</span></div>
             <div class="nav-item admin-only" onclick="navigateTo('products')" style="display:none;"><i class="fas fa-tags"></i> <span>Gestão de Produtos</span></div>
+            <div class="nav-item admin-only" onclick="navigateTo('monthlyProfit')" style="display:none;"><i class="fas fa-calendar-alt"></i> <span>📊 Lucros Mensais</span></div>
             <div class="nav-item admin-only" onclick="navigateTo('sellers')" style="display:none;"><i class="fas fa-users"></i> <span>Gestão de Vendedores</span></div>
             <div class="nav-item" onclick="navigateTo('reports')"><i class="fas fa-chart-bar"></i> <span>Relatórios</span></div>
             <div class="nav-item" onclick="fechoDoDia()"><i class="fas fa-calendar-check"></i> <span>Fecho do Dia</span></div>
@@ -929,7 +971,179 @@
         let barcodeBuffer = "";
         let barcodeTimeout = null;
         let lastScannedProduct = null;
+        let monthlyProfits = {}; // { "produtoId": lucroTotal, "total": lucroGeral, "month": mesAtual, "year": anoAtual, "lastReset": data }
         const CATEGORIAS = ["Calçado", "Vestuário", "Bolsa", "Pasta"];
+        
+        // ========== FUNÇÕES DE LUCROS MENSAIS ==========
+        
+        // Verificar e resetar lucros mensais se necessário (dia 1 do mês)
+        async function checkAndResetMonthlyProfits() {
+            const hoje = new Date();
+            const mesAtual = hoje.getMonth();
+            const anoAtual = hoje.getFullYear();
+            const diaAtual = hoje.getDate();
+            
+            // Buscar dados atuais do Supabase
+            const { data: profitData, error } = await supabaseClient.from('monthly_profits').select('*').single();
+            
+            if (error && error.code !== 'PGRST116') {
+                console.log("Erro ao buscar lucros mensais:", error);
+                // Criar registro inicial se não existir
+                if (error.code === 'PGRST116') {
+                    const initialData = {
+                        id: 1,
+                        profits: {},
+                        total: 0,
+                        month: mesAtual,
+                        year: anoAtual,
+                        last_reset: new Date().toISOString()
+                    };
+                    await supabaseClient.from('monthly_profits').upsert(initialData);
+                    monthlyProfits = { profits: {}, total: 0, month: mesAtual, year: anoAtual, lastReset: new Date().toISOString() };
+                }
+                return;
+            }
+            
+            if (profitData) {
+                monthlyProfits = {
+                    profits: profitData.profits || {},
+                    total: profitData.total || 0,
+                    month: profitData.month,
+                    year: profitData.year,
+                    lastReset: profitData.last_reset
+                };
+                
+                // Verificar se é dia 1 e o mês/ano mudou
+                if (diaAtual === 1 && (profitData.month !== mesAtual || profitData.year !== anoAtual)) {
+                    console.log("🔄 Resetando lucros mensais - Novo mês iniciado!");
+                    
+                    // Resetar lucros
+                    const resetData = {
+                        id: 1,
+                        profits: {},
+                        total: 0,
+                        month: mesAtual,
+                        year: anoAtual,
+                        last_reset: new Date().toISOString()
+                    };
+                    await supabaseClient.from('monthly_profits').upsert(resetData);
+                    monthlyProfits = {
+                        profits: {},
+                        total: 0,
+                        month: mesAtual,
+                        year: anoAtual,
+                        lastReset: new Date().toISOString()
+                    };
+                    
+                    notificarGerente('📅 Reset Mensal', `Lucros do mês anterior foram zerados. Novo ciclo iniciado!`, 'info');
+                }
+            } else {
+                // Criar registro inicial
+                const initialData = {
+                    id: 1,
+                    profits: {},
+                    total: 0,
+                    month: mesAtual,
+                    year: anoAtual,
+                    last_reset: new Date().toISOString()
+                };
+                await supabaseClient.from('monthly_profits').upsert(initialData);
+                monthlyProfits = { profits: {}, total: 0, month: mesAtual, year: anoAtual, lastReset: new Date().toISOString() };
+            }
+        }
+        
+        // Adicionar lucro ao acumulador mensal
+        async function addToMonthlyProfit(productId, productName, profitAmount) {
+            if (!profitAmount || profitAmount <= 0) return;
+            
+            const hoje = new Date();
+            const mesAtual = hoje.getMonth();
+            const anoAtual = hoje.getFullYear();
+            
+            // Verificar se precisa resetar antes de adicionar
+            if (monthlyProfits.month !== mesAtual || monthlyProfits.year !== anoAtual) {
+                await checkAndResetMonthlyProfits();
+            }
+            
+            // Atualizar lucros
+            const productKey = `${productId}`;
+            const currentProductProfit = monthlyProfits.profits[productKey] || 0;
+            monthlyProfits.profits[productKey] = currentProductProfit + profitAmount;
+            monthlyProfits.total = (monthlyProfits.total || 0) + profitAmount;
+            
+            // Salvar no Supabase
+            await supabaseClient.from('monthly_profits').upsert({
+                id: 1,
+                profits: monthlyProfits.profits,
+                total: monthlyProfits.total,
+                month: mesAtual,
+                year: anoAtual,
+                last_reset: monthlyProfits.lastReset
+            });
+        }
+        
+        // Mostrar painel de lucros mensais (apenas ADMIN)
+        async function showMonthlyProfit() {
+            await checkAndResetMonthlyProfits();
+            
+            const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            const mesNome = monthNames[monthlyProfits.month];
+            
+            // Criar lista de produtos com lucro
+            const profitList = [];
+            for (const [prodId, profit] of Object.entries(monthlyProfits.profits || {})) {
+                const product = products.find(p => p.id == prodId);
+                const productName = product ? product.name : `Produto #${prodId}`;
+                profitList.push({ id: prodId, name: productName, profit: profit });
+            }
+            
+            // Ordenar por maior lucro
+            profitList.sort((a, b) => b.profit - a.profit);
+            
+            const dataAtual = new Date();
+            const ultimoReset = monthlyProfits.lastReset ? new Date(monthlyProfits.lastReset).toLocaleDateString('pt-MZ') : 'Nunca';
+            
+            document.getElementById('mainContent').innerHTML = `
+                <div class="monthly-profit-card">
+                    <i class="fas fa-chart-line" style="font-size: 2.5rem; color: #ffd700;"></i>
+                    <h2 style="color: white; margin-top: 10px;">📊 LUCROS DO MÊS</h2>
+                    <h3 style="color: #ffd700; margin-bottom: 15px;">${mesNome} de ${monthlyProfits.year}</h3>
+                    <div class="monthly-profit-total">${(monthlyProfits.total || 0).toLocaleString()} MZN</div>
+                    <p style="color: #cbd5e1; margin-top: 10px;">💰 Lucro Total Acumulado</p>
+                </div>
+                
+                <div class="data-table" style="padding: 20px;">
+                    <h3 style="margin-bottom: 20px;"><i class="fas fa-chart-pie"></i> Lucro por Produto</h3>
+                    ${profitList.length > 0 ? `
+                        <div style="max-height: 500px; overflow-y: auto;">
+                            ${profitList.map(item => `
+                                <div class="profit-product-row">
+                                    <div>
+                                        <strong style="color: white;">${item.name}</strong>
+                                        <br>
+                                        <small style="color: #cbd5e1;">ID: ${item.id}</small>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <strong style="color: #ffd700; font-size: 1.3rem;">${item.profit.toLocaleString()} MZN</strong>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : `
+                        <div style="text-align: center; padding: 40px;">
+                            <i class="fas fa-chart-line" style="font-size: 3rem; color: #cbd5e1;"></i>
+                            <p style="color: #cbd5e1; margin-top: 15px;">Nenhum lucro registrado neste mês ainda.</p>
+                            <p style="color: #94a3b8; font-size: 0.9rem;">Vendas realizadas serão acumuladas automaticamente.</p>
+                        </div>
+                    `}
+                </div>
+                
+                <div class="reset-info">
+                    <i class="fas fa-sync-alt"></i> Reset automático no dia 1 de cada mês<br>
+                    <i class="fas fa-clock"></i> Último reset: ${ultimoReset}
+                </div>
+            `;
+        }
         
         function notificarGerente(titulo, mensagem, tipo = 'info') {
             const notificacao = document.createElement('div');
@@ -946,10 +1160,11 @@
         async function loadAllData() {
             try {
                 console.log("🔄 Buscando dados do Supabase...");
-                const [produtosRes, vendasRes, usuariosRes] = await Promise.all([
+                const [produtosRes, vendasRes, usuariosRes, monthlyRes] = await Promise.all([
                     supabaseClient.from('products').select('*'),
                     supabaseClient.from('sales').select('*').order('date', { ascending: false }),
-                    supabaseClient.from('users').select('*')
+                    supabaseClient.from('users').select('*'),
+                    supabaseClient.from('monthly_profits').select('*')
                 ]);
                 if (produtosRes.data) products = produtosRes.data;
                 if (vendasRes.data) {
@@ -957,6 +1172,16 @@
                     console.log(`✅ ${sales.length} vendas carregadas do Supabase`);
                 }
                 if (usuariosRes.data) users = usuariosRes.data;
+                if (monthlyRes.data && monthlyRes.data.length > 0) {
+                    const profitData = monthlyRes.data[0];
+                    monthlyProfits = {
+                        profits: profitData.profits || {},
+                        total: profitData.total || 0,
+                        month: profitData.month,
+                        year: profitData.year,
+                        lastReset: profitData.last_reset
+                    };
+                }
                 dataLoaded = true;
                 document.getElementById('onlineStatus').innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Supabase • Sincronizado';
                 if (currentUser && document.getElementById('pageTitle')?.innerText.includes('Dashboard')) showDashboard();
@@ -1156,7 +1381,7 @@
         window.navigateTo = function(view) {
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
             if (event && event.target) event.target.closest('.nav-item')?.classList.add('active');
-            const titles = { dashboard: 'Dashboard', pos: 'Ponto de Venda', stock: 'Gestão de Stock', products: 'Gestão de Produtos', sellers: 'Gestão de Vendedores', reports: 'Relatórios' };
+            const titles = { dashboard: 'Dashboard', pos: 'Ponto de Venda', stock: 'Gestão de Stock', products: 'Gestão de Produtos', sellers: 'Gestão de Vendedores', reports: 'Relatórios', monthlyProfit: 'Lucros Mensais' };
             document.getElementById('pageTitle').innerHTML = titles[view] || view;
             if (view === 'dashboard') showDashboard();
             else if (view === 'pos') showPOS();
@@ -1164,10 +1389,13 @@
             else if (view === 'products') showProducts();
             else if (view === 'sellers') showSellers();
             else if (view === 'reports') showReports();
+            else if (view === 'monthlyProfit') showMonthlyProfit();
             if (window.innerWidth <= 1024) document.getElementById('sidebar').classList.remove('active');
         };
         
         async function showDashboard() {
+            await checkAndResetMonthlyProfits();
+            
             const totalSales = sales.length;
             const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0);
             const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0);
@@ -1175,6 +1403,8 @@
             const vendasHoje = sales.filter(s => new Date(s.date).toDateString() === new Date().toDateString());
             const vendasHojeTotal = vendasHoje.reduce((sum, s) => sum + (s.total || 0), 0);
             const lucroHoje = vendasHoje.reduce((sum, s) => sum + (s.profit || 0), 0);
+            const lucroMensal = monthlyProfits.total || 0;
+            
             const productSales = {};
             sales.forEach(sale => {
                 let itemsList = sale.items;
@@ -1182,6 +1412,7 @@
                 if (itemsList && Array.isArray(itemsList)) itemsList.forEach(item => { if (item && item.name) productSales[item.name] = (productSales[item.name] || 0) + (item.quantity || 0); });
             });
             const topProducts = Object.entries(productSales).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            
             document.getElementById('mainContent').innerHTML = `
                 <div class="stats-grid">
                     <div class="stat-card"><i class="fas fa-chart-line"></i><h3>Total Vendas</h3><div class="value">${totalSales}</div></div>
@@ -1192,6 +1423,7 @@
                 <div class="stats-grid">
                     <div class="stat-card"><i class="fas fa-calendar-day"></i><h3>Vendas Hoje</h3><div class="value">${vendasHojeTotal.toLocaleString()} MZN</div></div>
                     <div class="stat-card profit-card"><i class="fas fa-coins"></i><h3>Lucro Hoje</h3><div class="value profit-value">${lucroHoje.toLocaleString()} MZN</div></div>
+                    <div class="stat-card profit-card" style="border-color: #ffd700;" onclick="if('${currentUser?.role}'==='admin') navigateTo('monthlyProfit')"><i class="fas fa-calendar-alt"></i><h3>📊 Lucro do Mês</h3><div class="value" style="color: #ffd700 !important;">${lucroMensal.toLocaleString()} MZN</div><small style="color:#cbd5e1;">Clique para detalhes</small></div>
                 </div>
                 <div class="data-table"><h3 style="padding: 20px;">🏆 Produtos Mais Vendidos</h3><table style="width:100%;"><thead><tr><th>Produto</th><th>Unidades</th></tr></thead><tbody>${topProducts.map(([name, qty]) => `<tr><td style="font-weight:700;"><strong>${name}</strong></td><td style="font-weight:700;">${qty}</td></tr>`).join('') || '<tr><td colspan="2">Sem dados ainda</td>'}</tbody>}</div>
                 <div class="data-table" style="margin-top: 25px;"><h3 style="padding: 20px;">🔄 Últimas Vendas</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 10).map(s => `<tr><td style="font-weight:600;">${s.invoice || 'N/A'}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller || 'N/A'}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(s.profit || 0).toLocaleString()} MZN</p>`).join('') || '<tr><td colspan="5">Sem vendas registadas</td>'}</tbody>}</div>
@@ -1285,7 +1517,6 @@
             if (span) { span.innerHTML = change >= 0 ? `${change.toLocaleString()} MZN` : `Faltam ${Math.abs(change).toLocaleString()} MZN`; span.style.color = change >= 0 ? '#66d9ff' : '#ff5252'; }
         };
         
-        // ========== RECIBO CENTRALIZADO COM SEPARADORES "********" ==========
         function printReceipt(sale) {
             if (!sale) return;
             let itensStr = '';
@@ -1375,7 +1606,17 @@
             };
             const { error } = await supabaseClient.from('sales').insert([saleData]);
             if (error) { showToast('Erro: ' + error.message, 'error'); return; }
-            for (const item of currentCart) { const prod = products.find(p => p.id === item.id); if (prod) prod.stock -= item.quantity; }
+            
+            // Atualizar estoque e lucros mensais
+            for (const item of currentCart) { 
+                const prod = products.find(p => p.id === item.id); 
+                if (prod) {
+                    prod.stock -= item.quantity;
+                    // Adicionar ao lucro mensal (apenas ADMIN pode ver, mas acumula sempre)
+                    await addToMonthlyProfit(item.id, item.name, (item.profit || 0) * item.quantity);
+                }
+            }
+            
             saveProducts();
             printReceipt(saleData);
             sales.unshift(saleData);
@@ -1443,7 +1684,6 @@
             } 
         };
         
-        // ========== GESTÃO DE PRODUTOS REORGANIZADA COM EFEITOS 3D HD ==========
         function showProducts() { 
             const container = document.getElementById('mainContent');
             if (!products.length) {
@@ -1557,7 +1797,7 @@
         
         function showSellers() { 
             const sellerList = users.filter(u => u.role === 'seller'); 
-            document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">👥 Gestão de Vendedores</h2><button class="btn btn-primary" onclick="showSellerModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Vendedor</button><div class="data-table"><table style="width:100%;"><thead><tr><th>ID</th><th>Nome</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${sellerList.map(s => `<tr><td style="font-weight:700;">${s.userId}</td><td style="font-weight:700;">${s.name}</td><td style="font-weight:700;">${new Date(s.createdAt).toLocaleDateString()}</td><td style="font-weight:700;"><button class="btn btn-danger" onclick="deleteSeller(${s.id})">Excluir</button></td></tr>`).join('')}</tbody>}</div>`; 
+            document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">👥 Gestão de Vendedores</h2><button class="btn btn-primary" onclick="showSellerModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Vendedor</button><div class="data-table"><table style="width:100%;"><thead><tr><th>ID</th><th>Nome</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${sellerList.map(s => `<td><td style="font-weight:700;">${s.userId}</td><td style="font-weight:700;">${s.name}</td><td style="font-weight:700;">${new Date(s.createdAt).toLocaleDateString()}</td><td style="font-weight:700;"><button class="btn btn-danger" onclick="deleteSeller(${s.id})">Excluir</button></td></tr>`).join('')}</tbody>}</div>`; 
         }
         
         window.showSellerModal = function() { const modal = document.createElement('div'); modal.className = 'modal active'; modal.innerHTML = `<div class="modal-content"><h3>Novo Vendedor</h3><div class="form-group"><label>ID</label><input type="text" id="sellerId" placeholder="VEND002"></div><div class="form-group"><label>Nome</label><input type="text" id="sellerName"></div><div class="form-group"><label>Senha</label><input type="password" id="sellerPass"></div><div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()">Cancelar</button><button class="btn btn-success" onclick="saveSeller()">Cadastrar</button></div></div>`; document.body.appendChild(modal); };
@@ -1579,6 +1819,8 @@
         
         window.onload = async () => {
             if (Notification.permission !== 'granted' && Notification.permission !== 'denied') Notification.requestPermission();
+            
+            // Criar tabela monthly_profits se não existir (via Supabase SQL ou apenas usar)
             supabaseClient.channel('sales-channel')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sales' }, payload => { 
                     if (currentUser && currentUser.role === 'admin') { 
@@ -1594,9 +1836,11 @@
                     } 
                 })
                 .subscribe();
+            
             await loadAllData();
+            await checkAndResetMonthlyProfits();
             setupBarcodeListener();
-            console.log("🦁 LIONS FASHION - Sistema Pronto: Recibo centralizado, número de produtos em branco, hover 3D nos produtos!");
+            console.log("🦁 LIONS FASHION - Sistema Pronto com Lucros Mensais e Reset Automático Dia 1!");
         };
     </script>
 </body>
