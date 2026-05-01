@@ -1539,7 +1539,7 @@
             if (span) { span.innerHTML = change >= 0 ? `${change.toLocaleString()} MZN` : `Faltam ${Math.abs(change).toLocaleString()} MZN`; span.style.color = change >= 0 ? '#66d9ff' : '#ff5252'; }
         };
         
-        // ========== RECIBO MAIS CURTO, CENTRALIZADO, SEM TELEFONE, SUPER RÁPIDO ==========
+        // ========== RECIBO SUPER RÁPIDO (MENOS DE 1 SEGUNDO) ==========
         function printReceipt(sale) {
             if (!sale) return;
             
@@ -1569,7 +1569,7 @@
             const linhaSep = '════════════════════════════';
             
             let reciboHtml = `
-                <div style="text-align: center; font-family: 'Courier New', monospace; width: 100%; max-width: 280px; margin: 0 auto; padding: 8px 0; font-weight: bold;">
+                <div style="text-align: center; font-family: 'Courier New', monospace; width: 100%; max-width: 280px; margin: 0 auto; padding: 6px 0; font-weight: bold;">
                     🦁 LIONS FASHION<br>
                     Av. Julius Nyerere n°6600<br>
                     Maputo - Moçambique<br>
@@ -1585,33 +1585,19 @@
                     ${sale.payment_method === 'Dinheiro MZN' ? `RECEBIDO: ${(sale.received || 0).toLocaleString()} MZN<br>TROCO: ${(sale.change || 0).toLocaleString()} MZN<br>` : ''}
                     ${linhaSep}<br>
                     ✨ OBRIGADO! VOLTE SEMPRE! ✨<br>
-                    ${linhaSep}<br>
                 </div>
             `;
             
-            // SUPER RÁPIDO - sem setTimeout, fecha imediatamente após imprimir
-            const win = window.open('', '_blank');
+            // IMPRESSÃO INSTANTÂNEA - sem delays
+            const win = window.open('', '_blank', 'width=350,height=500');
             if (win) {
                 win.document.write(`<!DOCTYPE html>
                 <html>
-                <head>
-                    <title>Recibo LIONS</title>
-                    <style>
-                        @page { size: 76mm auto; margin: 0; }
-                        @media print {
-                            body { margin: 0; padding: 6px; }
-                        }
-                        body { 
-                            font-family: 'Courier New', monospace; 
-                            width: 280px;
-                            margin: 0 auto;
-                            padding: 8px;
-                            text-align: center;
-                            background: white;
-                            color: black;
-                        }
-                        * { text-align: center; margin: 0; padding: 0; }
-                    </style>
+                <head><title>Recibo LIONS</title>
+                <style>
+                    body { font-family: 'Courier New', monospace; width: 280px; margin: 0 auto; padding: 10px; text-align: center; background: white; color: black; }
+                    @media print { body { margin: 0; padding: 5px; } }
+                </style>
                 </head>
                 <body onload="window.print(); window.close();">
                     ${reciboHtml}
@@ -1619,7 +1605,7 @@
                 </html>`);
                 win.document.close();
             } else {
-                showToast('⚠️ Permita popups para imprimir o recibo!', 'warning');
+                showToast('⚠️ Permita popups para imprimir!', 'warning');
             }
         }
         
@@ -1643,6 +1629,8 @@
             
             const saleData = { date: new Date().toISOString(), total: total, profit: totalProfit, items: JSON.stringify(currentCart.map(i => ({ name: i.name, price: i.price, quantity: i.quantity }))), seller: currentUser?.name || "Vendedor", payment_method: paymentMethod, received: received, change: received - total, invoice: `INV-${Date.now()}` };
             await supabaseClient.from('sales').insert([saleData]);
+            
+            // Chama a impressão e continua
             printReceipt(saleData);
             sales.unshift(saleData);
             currentCart = [];
@@ -1770,7 +1758,7 @@
         
         function showSellers() { 
             const sellerList = users.filter(u => u.role === 'seller'); 
-            document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">👥 Gestão de Vendedores</h2><button class="btn btn-primary" onclick="showSellerModal()">Novo Vendedor</button><div class="data-table"><table><thead><tr><th>ID</th><th>Nome</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${sellerList.map(s => `<tr><td style="font-weight:700;">${s.userId}</td><td style="font-weight:700;">${s.name}</td><td style="font-weight:700;">${new Date(s.createdAt).toLocaleDateString()}</td><td style="font-weight:700;"><button class="btn btn-danger" onclick="deleteSeller(${s.id})">Excluir</button></td></td>`).join('')}</tbody>}</div>`; 
+            document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">👥 Gestão de Vendedores</h2><button class="btn btn-primary" onclick="showSellerModal()">Novo Vendedor</button><div class="data-table"><table><thead><tr><th>ID</th><th>Nome</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${sellerList.map(s => `<tr><td style="font-weight:700;">${s.userId}</td><td style="font-weight:700;">${s.name}</td><td style="font-weight:700;">${new Date(s.createdAt).toLocaleDateString()}</td><td style="font-weight:700;"><button class="btn btn-danger" onclick="deleteSeller(${s.id})">Excluir</button></td></tr>`).join('')}</tbody>}</div>`; 
         }
         
         window.showSellerModal = function() { const modal = document.createElement('div'); modal.className = 'modal active'; modal.innerHTML = `<div class="modal-content"><h3>Novo Vendedor</h3><div class="form-group"><label>ID</label><input type="text" id="sellerId"></div><div class="form-group"><label>Nome</label><input type="text" id="sellerName"></div><div class="form-group"><label>Senha</label><input type="password" id="sellerPass"></div><div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()">Cancelar</button><button class="btn btn-success" onclick="saveSeller()">Cadastrar</button></div></div>`; document.body.appendChild(modal); };
