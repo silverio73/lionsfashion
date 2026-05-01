@@ -1447,7 +1447,7 @@
                     <div class="stat-card"><i class="fas fa-calendar-day"></i><h3>Vendas Hoje</h3><div class="value">${vendasHojeTotal.toLocaleString()} MZN</div></div>
                     <div class="stat-card profit-card"><i class="fas fa-coins"></i><h3>Lucro Hoje</h3><div class="value profit-value">${lucroHoje.toLocaleString()} MZN</div></div>
                 </div>
-                <div class="data-table" style="margin-top: 25px;"><h3 style="padding: 20px;">🔄 Últimas Vendas</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 10).map(s => `<tr><td style="font-weight:600;">${s.invoice || 'N/A'}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller || 'N/A'}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(s.profit || 0).toLocaleString()} MZN</p>`).join('') || '<td><td colspan="5">Sem vendas registadas</p>'}</tbody>}</div>
+                <div class="data-table" style="margin-top: 25px;"><h3 style="padding: 20px;">🔄 Últimas Vendas</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 10).map(s => `<tr><td style="font-weight:600;">${s.invoice || 'N/A'}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller || 'N/A'}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(s.profit || 0).toLocaleString()} MZN</p>`).join('') || '<tr><td colspan="5">Sem vendas registadas</p>'}</tbody>}</div>
             `;
         }
         
@@ -1537,20 +1537,107 @@
             if (span) { span.innerHTML = change >= 0 ? `${change.toLocaleString()} MZN` : `Faltam ${Math.abs(change).toLocaleString()} MZN`; span.style.color = change >= 0 ? '#66d9ff' : '#ff5252'; }
         };
         
+        // RECIBO BOLDADO, MAIS LONGO E SUPER SÔNICO
         function printReceipt(sale) {
             if (!sale) return;
+            
             let itensStr = '';
             let itemsList = sale.items;
             if (typeof itemsList === 'string') { try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } }
+            
             if (itemsList && Array.isArray(itemsList)) {
-                itemsList.forEach(item => { itensStr += `${item.name}\n${item.quantity} x ${item.price.toLocaleString()} MZN     ${(item.price * item.quantity).toLocaleString()} MZN\n`; });
+                itemsList.forEach(item => { 
+                    const nome = item.name.length > 28 ? item.name.substring(0, 26) + '..' : item.name;
+                    const precoItem = item.price.toLocaleString();
+                    const subtotal = (item.price * item.quantity).toLocaleString();
+                    itensStr += `${nome}\n   ${item.quantity} x ${precoItem} MZN = ${subtotal} MZN\n`;
+                });
             }
-            const dataFormatada = new Date(sale.date).toLocaleString('pt-MZ');
-            const linhaSep = '********************************';
-            let reciboHtml = `<div style="text-align:center;font-family:'Courier New',monospace;width:280px;margin:0 auto;padding:8px 0;">
-                🦁 LIONS FASHION<br>Av. Julius Nyerere n°6600<br>Maputo - Moçambique<br>${linhaSep}<br>FACTURA: ${sale.invoice}<br>DATA: ${dataFormatada}<br>ATENDENTE: ${sale.seller}<br>${linhaSep}<br>${itensStr}${linhaSep}<br>TOTAL: ${sale.total.toLocaleString()} MZN<br>PAGAMENTO: ${sale.payment_method}<br>${linhaSep}<br>OBRIGADO!<br>${linhaSep}<br></div>`;
+            
+            const dataFormatada = new Date(sale.date).toLocaleString('pt-MZ', { 
+                day: '2-digit', month: '2-digit', year: 'numeric', 
+                hour: '2-digit', minute: '2-digit', second: '2-digit' 
+            });
+            
+            let metodoPagamentoStr = '';
+            let metodoIcone = '';
+            if (sale.payment_method === 'M-pesa') { metodoPagamentoStr = 'M-Pesa'; metodoIcone = '📱'; }
+            else if (sale.payment_method === 'E-mola') { metodoPagamentoStr = 'E-mola'; metodoIcone = '📶'; }
+            else { metodoPagamentoStr = 'Dinheiro'; metodoIcone = '💰'; }
+            
+            const linhaSep = '════════════════════════════════════════';
+            
+            let reciboHtml = `
+                <div style="text-align: center; font-family: 'Courier New', monospace; width: 100%; max-width: 320px; margin: 0 auto; padding: 12px 0; font-weight: bold;">
+                    <div style="font-size: 16pt; font-weight: 900; margin-bottom: 8px;">🦁 LIONS FASHION</div>
+                    <div style="font-size: 10pt; font-weight: bold;">Av. Julius Nyerere n°6600</div>
+                    <div style="font-size: 10pt; font-weight: bold;">Maputo - Moçambique</div>
+                    <div style="font-size: 9pt;">Tel: +258 84 842 5099</div>
+                    <div style="margin: 8px 0;">${linhaSep}</div>
+                    
+                    <div style="font-size: 11pt; font-weight: 900;">FACTURA: ${sale.invoice}</div>
+                    <div style="font-size: 10pt;">DATA: ${dataFormatada}</div>
+                    <div style="font-size: 10pt;">ATENDENTE: ${sale.seller || 'Vendedor'}</div>
+                    <div style="margin: 5px 0;">${linhaSep}</div>
+                    
+                    <div style="font-size: 11pt; font-weight: 900; margin: 5px 0;">ITENS:</div>
+                    ${itensStr}
+                    <div style="margin: 5px 0;">${linhaSep}</div>
+                    
+                    <div style="font-size: 13pt; font-weight: 900; margin: 5px 0;">
+                        TOTAL: ${sale.total.toLocaleString()} MZN
+                    </div>
+                    <div style="font-size: 11pt; font-weight: bold;">
+                        PAGAMENTO: ${metodoIcone} ${metodoPagamentoStr}
+                    </div>
+                    ${sale.payment_method === 'Dinheiro MZN' ? `
+                    <div style="font-size: 10pt;">RECEBIDO: ${(sale.received || 0).toLocaleString()} MZN</div>
+                    <div style="font-size: 10pt;">TROCO: ${(sale.change || 0).toLocaleString()} MZN</div>
+                    ` : ''}
+                    <div style="margin: 5px 0;">${linhaSep}</div>
+                    
+                    <div style="font-size: 11pt; font-weight: 900; margin: 5px 0;">✨ OBRIGADO PELA PREFERÊNCIA! ✨</div>
+                    <div style="font-size: 10pt; font-weight: bold;">Volte Sempre!</div>
+                    <div style="font-size: 9pt; margin-top: 8px;">💎 Moda e Qualidade que te merece 💎</div>
+                    <div style="margin: 5px 0;">${linhaSep}</div>
+                    <div style="font-size: 8pt;">www.lionsfashion.co.mz</div>
+                    <div style="font-size: 8pt;">Siga-nos: @lionsfashion</div>
+                </div>
+            `;
+            
             const win = window.open('', '_blank');
-            if (win) { win.document.write(`<html><head><title>Recibo</title><style>body{font-family:'Courier New',monospace;width:280px;margin:0 auto;text-align:center;}</style></head><body>${reciboHtml}<script>window.print();setTimeout(()=>window.close(),600);<\/script></body></html>`); win.document.close(); }
+            if (win) {
+                win.document.write(`<!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Recibo LIONS FASHION</title>
+                    <style>
+                        @page { size: 80mm auto; margin: 0; }
+                        @media print {
+                            body { margin: 0; padding: 8px; }
+                            button { display: none; }
+                        }
+                        body { 
+                            font-family: 'Courier New', monospace; 
+                            width: 320px;
+                            margin: 0 auto;
+                            padding: 10px;
+                            font-weight: bold;
+                            background: white;
+                            color: black;
+                        }
+                        * { text-align: center; margin: 0; padding: 0; box-sizing: border-box; }
+                    </style>
+                </head>
+                <body onload="window.print(); setTimeout(() => window.close(), 800);">
+                    ${reciboHtml}
+                    <div style="font-size: 10pt; margin-top: 15px;">📞 848425099</div>
+                </body>
+                </html>`);
+                win.document.close();
+            } else {
+                showToast('⚠️ Permita popups para imprimir o recibo!', 'warning');
+            }
         }
         
         window.finalizeSale = async function() {
@@ -1605,7 +1692,7 @@
                     </div>
                     <div id="productInfo" style="margin-top:10px;"></div>
                 </div>
-                <div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Stock</th><th>Preço Venda</th><th>📦 Stock Inicial</th><th>✅ Vendidos</th><th>Ação</th></tr></thead><tbody>${products.map(p => `<tr><td><strong>${p.name}</strong></td><td>${p.category}</td><td style="color:#66d9ff;font-weight:800;">${p.stock}</td><td>${p.salePrice.toLocaleString()} MZN</p><td style="color:#00e676;">${(p.initialStock || p.stock)}</p><td style="color:#ffd700;">${(p.soldQuantity || 0)}</p><td><button class="btn btn-primary" onclick="updateStock(${p.id})">Ajustar</button></p>`).join('')}</tbody>}</div>
+                <div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Stock</th><th>Preço Venda</th><th>📦 Stock Inicial</th><th>✅ Vendidos</th><th>Ação</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td style="font-weight:700;">${p.category}</td><td style="color:#66d9ff;font-weight:800;">${p.stock}</td><td style="font-weight:700;">${p.salePrice.toLocaleString()} MZN</p><td style="color:#00e676;">${(p.initialStock || p.stock)}</p><td style="color:#ffd700;">${(p.soldQuantity || 0)}</p><td><button class="btn btn-primary" onclick="updateStock(${p.id})">Ajustar</button></p>`).join('')}</tbody>}</div>
             `;
             setTimeout(() => document.getElementById('stockBarcodeInput')?.focus(), 100);
         }
@@ -1619,7 +1706,7 @@
                     prod.stock = parseInt(novo); 
                     prod.soldQuantity = (prod.initialStock || oldStock + (prod.soldQuantity || 0)) - prod.stock;
                     await saveProducts(); 
-                    showToast(`Stock de ${prod.name} atualizado! Vendidos: ${prod.soldQuantity}`, 'success'); 
+                    showToast(`✅ Stock de ${prod.name} atualizado! Vendidos: ${prod.soldQuantity}`, 'success'); 
                     showStock(); 
                     if(document.getElementById('productsGrid')) filterProducts();
                 } 
@@ -1645,8 +1732,8 @@
                     <div class="product-card-body">
                         <div class="info-row"><span class="info-label">Preço Compra</span><span class="info-value">${(p.purchasePrice || 0).toLocaleString()} MZN</span></div>
                         <div class="info-row"><span class="info-label">Preço Venda</span><span class="info-value price-sale">${p.salePrice.toLocaleString()} MZN</span></div>
-                        <div class="info-row"><span class="info-label">📦 Stock INICIAL</span><span class="info-value">${(p.initialStock || p.stock).toLocaleString()}</span></div>
-                        <div class="info-row"><span class="info-label">✅ Vendidos</span><span class="info-value" style="color:#00e676;">${(p.soldQuantity || 0).toLocaleString()}</span></div>
+                        <div class="info-row"><span class="info-label">📦 Stock INICIAL</span><span class="info-value" style="color:#00e676;">${(p.initialStock || p.stock).toLocaleString()}</span></div>
+                        <div class="info-row"><span class="info-label">✅ Vendidos</span><span class="info-value" style="color:#ffd700;">${(p.soldQuantity || 0).toLocaleString()}</span></div>
                         <div class="info-row"><span class="info-label">Stock Atual</span><span class="stock-badge-3d">${p.stock} unidades</span></div>
                         <div class="action-buttons"><button class="btn btn-primary" onclick="editProduct(${p.id})">Editar</button><button class="btn btn-danger" onclick="deleteProduct(${p.id})">Excluir</button></div>
                     </div>
@@ -1700,7 +1787,7 @@
         
         function showSellers() { 
             const sellerList = users.filter(u => u.role === 'seller'); 
-            document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">👥 Gestão de Vendedores</h2><button class="btn btn-primary" onclick="showSellerModal()">Novo Vendedor</button><div class="data-table"><table><thead><tr><th>ID</th><th>Nome</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${sellerList.map(s => `<tr><td>${s.userId}</td><td>${s.name}</td><td>${new Date(s.createdAt).toLocaleDateString()}</td><td><button class="btn btn-danger" onclick="deleteSeller(${s.id})">Excluir</button></td></tr>`).join('')}</tbody></table></div>`; 
+            document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">👥 Gestão de Vendedores</h2><button class="btn btn-primary" onclick="showSellerModal()">Novo Vendedor</button><div class="data-table"></table><thead><tr><th>ID</th><th>Nome</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${sellerList.map(s => `<tr><td style="font-weight:700;">${s.userId}</td><td style="font-weight:700;">${s.name}</td><td style="font-weight:700;">${new Date(s.createdAt).toLocaleDateString()}</td><td style="font-weight:700;"><button class="btn btn-danger" onclick="deleteSeller(${s.id})">Excluir</button></td></tr>`).join('')}</tbody>}</div>`; 
         }
         
         window.showSellerModal = function() { const modal = document.createElement('div'); modal.className = 'modal active'; modal.innerHTML = `<div class="modal-content"><h3>Novo Vendedor</h3><div class="form-group"><label>ID</label><input type="text" id="sellerId"></div><div class="form-group"><label>Nome</label><input type="text" id="sellerName"></div><div class="form-group"><label>Senha</label><input type="password" id="sellerPass"></div><div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()">Cancelar</button><button class="btn btn-success" onclick="saveSeller()">Cadastrar</button></div></div>`; document.body.appendChild(modal); };
@@ -1711,7 +1798,7 @@
         function showReports() { 
             const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0); 
             const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0); 
-            document.getElementById('mainContent').innerHTML = `<div class="stats-grid"><div class="stat-card"><h3>Total Vendas</h3><div class="value">${sales.length}</div></div><div class="stat-card"><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div><div class="stat-card profit-card"><h3>Lucro Total</h3><div class="value profit-value">${totalProfit.toLocaleString()} MZN</div></div></div><div class="data-table"><h3>📋 Histórico</h3><table><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 30).map(s => `<td><td>${s.invoice}</td><td>${new Date(s.date).toLocaleString()}</td><td>${s.seller}</td><td>${(s.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(s.profit || 0).toLocaleString()} MZN</p>`).join('') || '<td><td colspan="5">Sem vendas</p>'}</tbody></table></div>`; 
+            document.getElementById('mainContent').innerHTML = `<div class="stats-grid"><div class="stat-card"><h3>Total Vendas</h3><div class="value">${sales.length}</div></div><div class="stat-card"><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div><div class="stat-card profit-card"><h3>Lucro Total</h3><div class="value profit-value">${totalProfit.toLocaleString()} MZN</div></div></div><div class="data-table"><h3>📋 Histórico</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 30).map(s => `<td><td style="font-weight:600;">${s.invoice}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(s.profit || 0).toLocaleString()} MZN</p>`).join('') || '<tr><td colspan="5">Sem vendas</p>'}</tbody>}</div>`; 
         }
         
         window.onload = async () => {
@@ -1719,7 +1806,7 @@
             supabaseClient.channel('sales-channel').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sales' }, () => { if (currentUser && currentUser.role === 'admin') loadAllData(); }).subscribe();
             await loadAllData();
             setupBarcodeListener();
-            console.log("🦁 LIONS FASHION - Sistema Pronto com Stock Inicial, Vendidos e Relatório Mensal!");
+            console.log("🦁 LIONS FASHION - Sistema Pronto!");
         };
     </script>
 </body>
