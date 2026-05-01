@@ -1101,7 +1101,7 @@
                     <div style="max-height: 500px; overflow-y: auto;">
                         <table style="width:100%;">
                             <thead>
-                                <tr>
+                                </tr>
                                     <th>Factura</th>
                                     <th>Data</th>
                                     <th>Vendedor</th>
@@ -1119,8 +1119,8 @@
                                         <td style="font-weight:700;">${(sale.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(sale.profit || 0).toLocaleString()} MZN</p></td>
                                         <td><button class="btn-remover-venda" onclick="removerVenda('${sale.id}')"><i class="fas fa-trash"></i> Apagar</button></td>
                                     </tr>
-                                `).join('') || '<tr><td colspan="6">Sem vendas registadas</p>'}</tbody>
-                        </table>
+                                `).join('') || '<td><td colspan="6">Sem vendas registadas</p>'}</tbody>
+                            </table>
                     </div>
                 </div>
             `;
@@ -1447,7 +1447,7 @@
                     <div class="stat-card"><i class="fas fa-calendar-day"></i><h3>Vendas Hoje</h3><div class="value">${vendasHojeTotal.toLocaleString()} MZN</div></div>
                     <div class="stat-card profit-card"><i class="fas fa-coins"></i><h3>Lucro Hoje</h3><div class="value profit-value">${lucroHoje.toLocaleString()} MZN</div></div>
                 </div>
-                <div class="data-table" style="margin-top: 25px;"><h3 style="padding: 20px;">🔄 Últimas Vendas</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 10).map(s => `<tr><td style="font-weight:600;">${s.invoice || 'N/A'}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller || 'N/A'}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(s.profit || 0).toLocaleString()} MZN</p>`).join('') || '<tr><td colspan="5">Sem vendas registadas</p>'}</tbody>}</div>
+                <div class="data-table" style="margin-top: 25px;"><h3 style="padding: 20px;">🔄 Últimas Vendas</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 10).map(s => `<tr><td style="font-weight:600;">${s.invoice || 'N/A'}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller || 'N/A'}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(s.profit || 0).toLocaleString()} MZN</p>`).join('') || '<td><td colspan="5">Sem vendas registadas</p>'}</tbody>}</div>
             `;
         }
         
@@ -1539,7 +1539,7 @@
             if (span) { span.innerHTML = change >= 0 ? `${change.toLocaleString()} MZN` : `Faltam ${Math.abs(change).toLocaleString()} MZN`; span.style.color = change >= 0 ? '#66d9ff' : '#ff5252'; }
         };
         
-        // ========== RECIBO SUPER RÁPIDO (MENOS DE 1 SEGUNDO) ==========
+        // ========== RECIBO ULTRA RÁPIDO (IMPRESSÃO INSTANTÂNEA) ==========
         function printReceipt(sale) {
             if (!sale) return;
             
@@ -1558,7 +1558,7 @@
             
             const dataFormatada = new Date(sale.date).toLocaleString('pt-MZ', { 
                 day: '2-digit', month: '2-digit', year: 'numeric', 
-                hour: '2-digit', minute: '2-digit'
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
             });
             
             let metodoPagamentoStr = '';
@@ -1569,7 +1569,7 @@
             const linhaSep = '════════════════════════════';
             
             let reciboHtml = `
-                <div style="text-align: center; font-family: 'Courier New', monospace; width: 100%; max-width: 280px; margin: 0 auto; padding: 6px 0; font-weight: bold;">
+                <div style="text-align: center; font-family: 'Courier New', monospace; width: 280px; margin: 0 auto; padding: 8px 0; font-weight: bold;">
                     🦁 LIONS FASHION<br>
                     Av. Julius Nyerere n°6600<br>
                     Maputo - Moçambique<br>
@@ -1588,16 +1588,27 @@
                 </div>
             `;
             
-            // IMPRESSÃO INSTANTÂNEA - sem delays
-            const win = window.open('', '_blank', 'width=350,height=500');
+            // IMPRESSÃO INSTANTÂNEA - janela minúscula que abre e imprime imediatamente
+            const win = window.open('', '_blank', 'width=1,height=1');
             if (win) {
                 win.document.write(`<!DOCTYPE html>
                 <html>
-                <head><title>Recibo LIONS</title>
-                <style>
-                    body { font-family: 'Courier New', monospace; width: 280px; margin: 0 auto; padding: 10px; text-align: center; background: white; color: black; }
-                    @media print { body { margin: 0; padding: 5px; } }
-                </style>
+                <head>
+                    <title>Recibo</title>
+                    <style>
+                        body { 
+                            font-family: 'Courier New', monospace; 
+                            width: 280px; 
+                            margin: 0 auto; 
+                            padding: 8px; 
+                            text-align: center; 
+                            background: white; 
+                            color: black;
+                        }
+                        @media print {
+                            body { margin: 0; padding: 4px; }
+                        }
+                    </style>
                 </head>
                 <body onload="window.print(); window.close();">
                     ${reciboHtml}
@@ -1630,7 +1641,7 @@
             const saleData = { date: new Date().toISOString(), total: total, profit: totalProfit, items: JSON.stringify(currentCart.map(i => ({ name: i.name, price: i.price, quantity: i.quantity }))), seller: currentUser?.name || "Vendedor", payment_method: paymentMethod, received: received, change: received - total, invoice: `INV-${Date.now()}` };
             await supabaseClient.from('sales').insert([saleData]);
             
-            // Chama a impressão e continua
+            // IMPRIME INSTANTANEAMENTE e continua
             printReceipt(saleData);
             sales.unshift(saleData);
             currentCart = [];
@@ -1769,7 +1780,7 @@
         function showReports() { 
             const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0); 
             const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0); 
-            document.getElementById('mainContent').innerHTML = `<div class="stats-grid"><div class="stat-card"><h3>Total Vendas</h3><div class="value">${sales.length}</div></div><div class="stat-card"><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div><div class="stat-card profit-card"><h3>Lucro Total</h3><div class="value profit-value">${totalProfit.toLocaleString()} MZN</div></div></div><div class="data-table"><h3>📋 Histórico</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 30).map(s => `<td><td style="font-weight:600;">${s.invoice}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(s.profit || 0).toLocaleString()} MZN</p>`).join('') || '<td><td colspan="5">Sem vendas</p>'}</tbody>}</div>`; 
+            document.getElementById('mainContent').innerHTML = `<div class="stats-grid"><div class="stat-card"><h3>Total Vendas</h3><div class="value">${sales.length}</div></div><div class="stat-card"><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div><div class="stat-card profit-card"><h3>Lucro Total</h3><div class="value profit-value">${totalProfit.toLocaleString()} MZN</div></div></div><div class="data-table"><h3>📋 Histórico</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 30).map(s => `<td><td style="font-weight:600;">${s.invoice}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(s.profit || 0).toLocaleString()} MZN</p>`).join('') || '<tr><td colspan="5">Sem vendas</p>'}</tbody>}</div>`; 
         }
         
         window.onload = async () => {
