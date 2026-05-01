@@ -960,6 +960,7 @@
             <div class="nav-item admin-only" onclick="navigateTo('manageSales')" style="display:none;"><i class="fas fa-trash-alt"></i> <span>🗑️ Apagar Vendas</span></div>
             <div class="nav-item" onclick="navigateTo('reports')"><i class="fas fa-chart-bar"></i> <span>Relatórios</span></div>
             <div class="nav-item" onclick="fechoDoDia()"><i class="fas fa-calendar-check"></i> <span>Fecho do Dia</span></div>
+            <div class="nav-item" onclick="showMonthlyReport()"><i class="fas fa-calendar-alt"></i> <span>📅 Relatório Mensal</span></div>
             <div class="nav-item" onclick="logout()"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></div>
         </div>
         
@@ -1115,12 +1116,10 @@
                                         <td style="font-weight:600;">${sale.invoice || 'N/A'}</td>
                                         <td style="font-weight:600;">${new Date(sale.date).toLocaleString()}</td>
                                         <td style="font-weight:600;">${sale.seller || 'N/A'}</td>
-                                        <td style="font-weight:700;">${(sale.total || 0).toLocaleString()} MZN</td>
-                                        <td style="color:#66d9ff;">${(sale.profit || 0).toLocaleString()} MZN</td>
+                                        <td style="font-weight:700;">${(sale.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(sale.profit || 0).toLocaleString()} MZN</p></td>
                                         <td><button class="btn-remover-venda" onclick="removerVenda('${sale.id}')"><i class="fas fa-trash"></i> Apagar</button></td>
                                     </tr>
-                                `).join('') || '<tr><td colspan="6">Sem vendas registadas</td></tr>'}
-                            </tbody>
+                                `).join('') || '<tr><td colspan="6">Sem vendas registadas</p>'}</tbody>
                         </table>
                     </div>
                 </div>
@@ -1131,71 +1130,27 @@
             if (!confirm('⚠️ ATENÇÃO! Esta ação irá:\n1. Remover a venda permanentemente\n2. Devolver todos os produtos ao stock\n\nTem certeza?')) return;
             
             try {
-                // Buscar a venda completa
-                const { data: sale, error: fetchError } = await supabaseClient
-                    .from('sales')
-                    .select('*')
-                    .eq('id', saleId)
-                    .single();
-                
+                const { data: sale, error: fetchError } = await supabaseClient.from('sales').select('*').eq('id', saleId).single();
                 if (fetchError) throw fetchError;
                 
-                // Recuperar os itens da venda
                 let items = sale.items;
-                if (typeof items === 'string') {
-                    try { items = JSON.parse(items); } catch(e) { items = []; }
-                }
+                if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
                 
-                // Devolver produtos ao stock
                 if (items && Array.isArray(items)) {
                     for (const item of items) {
                         const produtoExistente = products.find(p => p.name === item.name);
                         if (produtoExistente) {
-                            // Produto existe: devolver ao stock
                             produtoExistente.stock += item.quantity;
                             await supabaseClient.from('products').upsert(produtoExistente);
-                            console.log(`✅ Devolvido ${item.quantity}x ${item.name} ao stock`);
-                        } else {
-                            // Produto não existe? Criar (caso raro)
-                            const novoId = Math.max(...products.map(p => p.id), 0) + 1;
-                            const novoProduto = {
-                                id: novoId,
-                                name: item.name,
-                                category: "Outros",
-                                salePrice: item.price,
-                                purchasePrice: item.price * 0.7,
-                                stock: item.quantity,
-                                profit: item.price * 0.3,
-                                barcode: `REST-${Date.now()}`
-                            };
-                            products.push(novoProduto);
-                            await supabaseClient.from('products').upsert(novoProduto);
-                            console.log(`✅ Criado novo produto "${item.name}" com ${item.quantity} unidades`);
                         }
                     }
                 }
                 
-                // Remover a venda do Supabase
-                const { error: deleteError } = await supabaseClient
-                    .from('sales')
-                    .delete()
-                    .eq('id', saleId);
-                
-                if (deleteError) throw deleteError;
-                
-                // Atualizar a lista local
+                await supabaseClient.from('sales').delete().eq('id', saleId);
                 sales = sales.filter(s => s.id !== saleId);
-                
-                // Remover a linha da tabela
-                const row = document.getElementById(`sale-row-${saleId}`);
-                if (row) row.remove();
-                
-                showToast(`✅ Venda removida e ${items?.length || 0} produto(s) devolvido(s) ao stock!`, 'success');
-                notificarGerente('🗑️ Venda Removida', `Venda ${sale.invoice} foi removida e produtos devolvidos ao stock!`, 'warning');
-                
-                // Recarregar dados para manter sincronizado
+                document.getElementById(`sale-row-${saleId}`)?.remove();
+                showToast(`✅ Venda removida e produtos devolvidos ao stock!`, 'success');
                 await loadAllData();
-                
             } catch (error) {
                 console.error("Erro ao remover venda:", error);
                 showToast('❌ Erro ao remover venda!', 'error');
@@ -1221,81 +1176,44 @@
             const preco = parseFloat(document.getElementById('devolucaoPreco').value);
             const quantidade = parseInt(document.getElementById('devolucaoQuantidade').value);
             
-            if (!nome) {
-                showToast('❌ Digite o nome do produto!', 'error');
-                return;
-            }
-            if (isNaN(preco) || preco <= 0) {
-                showToast('❌ Digite um preço válido!', 'error');
-                return;
-            }
-            if (isNaN(quantidade) || quantidade <= 0) {
-                showToast('❌ Digite uma quantidade válida!', 'error');
-                return;
-            }
+            if (!nome) { showToast('❌ Digite o nome do produto!', 'error'); return; }
+            if (isNaN(preco) || preco <= 0) { showToast('❌ Digite um preço válido!', 'error'); return; }
+            if (isNaN(quantidade) || quantidade <= 0) { showToast('❌ Digite uma quantidade válida!', 'error'); return; }
             
             const valorTotal = preco * quantidade;
-            
             const confirmacao = confirm(`Confirmar devolução de ${quantidade}x ${nome}\nValor total: ${valorTotal.toLocaleString()} MZN?`);
             
             if (confirmacao) {
                 try {
-                    // Verificar se o produto já existe
                     const produtoExistente = products.find(p => p.name.toLowerCase() === nome.toLowerCase());
                     
                     if (produtoExistente) {
-                        // Produto existe: atualizar stock
                         produtoExistente.stock += quantidade;
                         await supabaseClient.from('products').upsert(produtoExistente);
                         showToast(`✅ Stock de ${nome} atualizado! +${quantidade} unidades`, 'success');
                     } else {
-                        // Produto não existe: criar novo produto
                         const novoId = Math.max(...products.map(p => p.id), 0) + 1;
                         const novoProduto = {
-                            id: novoId,
-                            name: nome,
-                            category: categoria,
-                            salePrice: preco,
-                            purchasePrice: preco * 0.7,
-                            stock: quantidade,
-                            profit: preco * 0.3,
-                            barcode: `DEV-${Date.now()}`
+                            id: novoId, name: nome, category: categoria, salePrice: preco,
+                            purchasePrice: preco * 0.7, stock: quantidade, profit: preco * 0.3,
+                            barcode: `DEV-${Date.now()}`, initialStock: quantidade, soldQuantity: 0
                         };
                         products.push(novoProduto);
                         await supabaseClient.from('products').upsert(novoProduto);
-                        showToast(`✅ Novo produto "${nome}" adicionado com ${quantidade} unidades!`, 'success');
+                        showToast(`✅ Novo produto "${nome}" adicionado!`, 'success');
                     }
-                    
-                    // Registrar devolução na tabela de vendas como registro negativo
-                    const devolucaoData = {
-                        date: new Date().toISOString(),
-                        total: -valorTotal,
-                        profit: - (preco * 0.3 * quantidade),
-                        items: JSON.stringify([{ name: nome, price: preco, quantity: quantidade, profit: preco * 0.3 }]),
-                        seller: currentUser?.name || "Sistema",
-                        payment_method: "Devolução",
-                        received: 0,
-                        change: 0,
-                        invoice: `DEV-${Date.now()}`
-                    };
-                    await supabaseClient.from('sales').insert([devolucaoData]);
-                    
-                    notificarGerente('🔄 Devolução Registrada', `${quantidade}x ${nome} (${valorTotal.toLocaleString()} MZN) foi devolvido!`, 'warning');
                     
                     fecharModalDevolucao();
                     await loadAllData();
                     if (document.getElementById('pageTitle')?.innerText === 'Gestão de Stock') showStock();
                     if (document.getElementById('productsGrid')) filterProducts();
                     if (document.getElementById('products3dGrid')) showProducts();
-                    
                 } catch (error) {
-                    console.error("Erro na devolução:", error);
                     showToast('❌ Erro ao processar devolução!', 'error');
                 }
             }
         }
         
-        // Substituir a função antiga de devolução
         window.devolverProduto = function() {
             if (currentUser?.role !== 'admin') {
                 showToast('⚠️ Apenas administradores podem fazer devoluções!', 'warning');
@@ -1315,7 +1233,54 @@
             }
         }
         
-        // ========== CARREGAR DADOS APENAS DO SUPABASE ==========
+        // ========== RELATÓRIO MENSAL ==========
+        window.showMonthlyReport = function() {
+            const hoje = new Date();
+            const mesAnterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+            const primeiroDiaMesAnterior = new Date(mesAnterior.getFullYear(), mesAnterior.getMonth(), 1);
+            const ultimoDiaMesAnterior = new Date(mesAnterior.getFullYear(), mesAnterior.getMonth() + 1, 0);
+            
+            const vendasMesAnterior = sales.filter(s => {
+                const dataVenda = new Date(s.date);
+                return dataVenda >= primeiroDiaMesAnterior && dataVenda <= ultimoDiaMesAnterior;
+            });
+            
+            const totalVendas = vendasMesAnterior.length;
+            const totalReceita = vendasMesAnterior.reduce((sum, s) => sum + (s.total || 0), 0);
+            const totalLucro = vendasMesAnterior.reduce((sum, s) => sum + (s.profit || 0), 0);
+            const totalProdutosVendidos = vendasMesAnterior.reduce((sum, s) => {
+                let items = s.items;
+                if (typeof items === 'string') try { items = JSON.parse(items); } catch(e) { items = []; }
+                return sum + (items?.reduce((acc, i) => acc + (i.quantity || 0), 0) || 0);
+            }, 0);
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3 style="margin-bottom:20px;"><i class="fas fa-calendar-alt"></i> Relatório Mensal</h3>
+                    <div class="info-row" style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <span>📅 Mês Referência:</span><span><strong>${mesAnterior.toLocaleString('pt-MZ', { month: 'long', year: 'numeric' })}</strong></span>
+                    </div>
+                    <div class="info-row" style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <span>🛒 Total de Vendas:</span><span><strong>${totalVendas}</strong></span>
+                    </div>
+                    <div class="info-row" style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <span>💰 Receita Total:</span><span style="color:#66d9ff;"><strong>${totalReceita.toLocaleString()} MZN</strong></span>
+                    </div>
+                    <div class="info-row" style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <span>📈 Lucro Total:</span><span style="color:#ffd700;"><strong>${totalLucro.toLocaleString()} MZN</strong></span>
+                    </div>
+                    <div class="info-row" style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <span>📦 Produtos Vendidos:</span><span><strong>${totalProdutosVendidos}</strong></span>
+                    </div>
+                    <div style="margin-top:20px;"><button class="btn btn-primary" onclick="this.closest('.modal').remove()" style="width:100%;">Fechar</button></div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+        
+        // ========== CARREGAR DADOS DO SUPABASE ==========
         async function loadAllData() {
             try {
                 console.log("🔄 Buscando dados do Supabase...");
@@ -1325,10 +1290,7 @@
                     supabaseClient.from('users').select('*')
                 ]);
                 if (produtosRes.data) products = produtosRes.data;
-                if (vendasRes.data) {
-                    sales = vendasRes.data;
-                    console.log(`✅ ${sales.length} vendas carregadas do Supabase`);
-                }
+                if (vendasRes.data) sales = vendasRes.data;
                 if (usuariosRes.data) users = usuariosRes.data;
                 dataLoaded = true;
                 document.getElementById('onlineStatus').innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Supabase • Sincronizado';
@@ -1362,81 +1324,40 @@
         function showScannedProduct(product) {
             const resultDiv = document.getElementById('scanResult');
             if (resultDiv && product) {
-                resultDiv.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong style="color: #66d9ff;">${product.name}</strong><br>
-                            <small style="color: #cbd5e1;">${product.category} • ${product.barcode}</small>
-                        </div>
-                        <div style="text-align: right;">
-                            <strong style="color: #66d9ff;">${product.salePrice.toLocaleString()} MZN</strong><br>
-                            <small style="color: #cbd5e1;">Stock: ${product.stock}</small>
-                        </div>
-                    </div>
-                `;
+                resultDiv.innerHTML = `<div style="display:flex;justify-content:space-between;"><div><strong style="color:#66d9ff;">${product.name}</strong><br><small>${product.category} • ${product.barcode}</small></div><div><strong>${product.salePrice.toLocaleString()} MZN</strong><br><small>Stock: ${product.stock}</small></div></div>`;
                 resultDiv.classList.add('show');
-                setTimeout(() => {
-                    resultDiv.classList.remove('show');
-                }, 2000);
+                setTimeout(() => resultDiv.classList.remove('show'), 2000);
             }
         }
         
         window.addByBarcode = async function() {
             const barcode = document.getElementById('barcodeInput')?.value.trim();
-            if (!barcode) {
-                showToast('Digite ou escaneie um código de barras!', 'warning');
-                return;
-            }
+            if (!barcode) { showToast('Digite ou escaneie um código!', 'warning'); return; }
             const product = products.find(p => p.barcode === barcode);
-            if (!product) {
-                showToast('Produto não encontrado!', 'error');
-                document.getElementById('barcodeInput').value = '';
-                document.getElementById('barcodeInput').focus();
-                return;
-            }
-            if (product.stock <= 0) {
-                showToast('Produto sem stock!', 'error');
-                document.getElementById('barcodeInput').value = '';
-                document.getElementById('barcodeInput').focus();
-                return;
-            }
+            if (!product) { showToast('Produto não encontrado!', 'error'); document.getElementById('barcodeInput').focus(); return; }
+            if (product.stock <= 0) { showToast('Produto sem stock!', 'error'); document.getElementById('barcodeInput').focus(); return; }
             showScannedProduct(product);
             addToCart(product.id);
             document.getElementById('barcodeInput').value = '';
             document.getElementById('barcodeInput').focus();
-            showToast(`✅ ${product.name} adicionado via código de barras!`, 'success');
         };
         
         window.scanForStock = async function() {
             const barcode = document.getElementById('stockBarcodeInput')?.value.trim();
-            if (!barcode) {
-                showToast('Digite ou escaneie um código de barras!', 'warning');
-                return;
-            }
+            if (!barcode) { showToast('Digite ou escaneie um código!', 'warning'); return; }
             const product = products.find(p => p.barcode === barcode);
-            if (!product) {
-                showToast('Produto não encontrado!', 'error');
-                document.getElementById('stockBarcodeInput').value = '';
-                document.getElementById('stockBarcodeInput').focus();
-                return;
-            }
+            if (!product) { showToast('Produto não encontrado!', 'error'); document.getElementById('stockBarcodeInput').focus(); return; }
             const infoDiv = document.getElementById('productInfo');
             if (infoDiv) {
-                infoDiv.innerHTML = `
-                    <div style="background: rgba(0, 191, 255, 0.2); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
-                        <p><strong style="color: #66d9ff;">📦 Produto:</strong> <span style="color: white;">${product.name}</span></p>
-                        <p><strong style="color: #66d9ff;">📁 Categoria:</strong> <span style="color: white;">${product.category}</span></p>
-                        <p><strong style="color: #66d9ff;">💰 Preço:</strong> <span style="color: white;">${product.salePrice.toLocaleString()} MZN</span></p>
-                        <p><strong style="color: #66d9ff;">📊 Stock atual:</strong> <span style="color: white;">${product.stock}</span></p>
-                        ${product.barcode ? `<p><strong style="color: #66d9ff;">🔑 Código:</strong> <span style="color: white;">${product.barcode}</span></p>` : ''}
-                    </div>
-                `;
+                infoDiv.innerHTML = `<div style="background:rgba(0,191,255,0.2);padding:15px;border-radius:12px;"><p><strong>📦 Produto:</strong> ${product.name}</p><p><strong>📁 Categoria:</strong> ${product.category}</p><p><strong>💰 Preço:</strong> ${product.salePrice.toLocaleString()} MZN</p><p><strong>📊 Stock atual:</strong> ${product.stock}</p><p><strong>📦 Stock Inicial:</strong> ${(product.initialStock || product.stock)}</p><p><strong>✅ Vendidos:</strong> ${(product.soldQuantity || 0)}</p></div>`;
             }
-            const novaQuantidade = prompt(`Produto: ${product.name}\nPreço: ${product.salePrice.toLocaleString()} MZN\nCategoria: ${product.category}\nStock atual: ${product.stock}\nDigite a nova quantidade em stock:`);
+            const novaQuantidade = prompt(`Produto: ${product.name}\nStock atual: ${product.stock}\nStock Inicial: ${product.initialStock || product.stock}\nVendidos: ${product.soldQuantity || 0}\n\nDigite a nova quantidade em stock:`);
             if (novaQuantidade && !isNaN(novaQuantidade)) {
+                const oldStock = product.stock;
                 product.stock = parseInt(novaQuantidade);
+                product.soldQuantity = (product.initialStock || oldStock + (product.soldQuantity || 0)) - product.stock;
                 await saveProducts();
-                showToast(`✅ Stock de ${product.name} atualizado para ${product.stock}!`, 'success');
+                showToast(`✅ Stock de ${product.name} atualizado para ${product.stock}! Vendidos: ${product.soldQuantity}`, 'success');
                 showStock();
             }
             document.getElementById('stockBarcodeInput').value = '';
@@ -1447,22 +1368,12 @@
             document.addEventListener('keydown', function(e) {
                 if (document.getElementById('pageTitle')?.innerText !== 'Ponto de Venda') return;
                 if (document.activeElement && document.activeElement.id === 'barcodeInput') return;
-                if (document.activeElement && document.activeElement.tagName === 'INPUT' && document.activeElement.id !== 'barcodeInput') return;
                 if (e.key === 'Enter') {
                     if (barcodeBuffer.length > 0) {
                         e.preventDefault();
                         const product = products.find(p => p.barcode === barcodeBuffer);
-                        if (product) {
-                            if (product.stock > 0) {
-                                showScannedProduct(product);
-                                addToCart(product.id);
-                                showToast(`✅ ${product.name} adicionado!`, 'success');
-                            } else {
-                                showToast('❌ Produto sem stock!', 'error');
-                            }
-                        } else {
-                            showToast('❌ Produto não encontrado!', 'error');
-                        }
+                        if (product && product.stock > 0) { showScannedProduct(product); addToCart(product.id); }
+                        else showToast(product ? 'Produto sem stock!' : 'Produto não encontrado!', 'error');
                         barcodeBuffer = "";
                         if (barcodeTimeout) clearTimeout(barcodeTimeout);
                     }
@@ -1471,9 +1382,7 @@
                 if (e.key.length === 1 && !e.ctrlKey && !e.altKey) {
                     barcodeBuffer += e.key;
                     if (barcodeTimeout) clearTimeout(barcodeTimeout);
-                    barcodeTimeout = setTimeout(() => {
-                        barcodeBuffer = "";
-                    }, 100);
+                    barcodeTimeout = setTimeout(() => { barcodeBuffer = ""; }, 100);
                 }
             });
         }
@@ -1521,29 +1430,24 @@
             const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0);
             const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0);
             const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
+            const totalSold = products.reduce((sum, p) => sum + (p.soldQuantity || 0), 0);
             const vendasHoje = sales.filter(s => new Date(s.date).toDateString() === new Date().toDateString());
             const vendasHojeTotal = vendasHoje.reduce((sum, s) => sum + (s.total || 0), 0);
             const lucroHoje = vendasHoje.reduce((sum, s) => sum + (s.profit || 0), 0);
-            const productSales = {};
-            sales.forEach(sale => {
-                let itemsList = sale.items;
-                if (typeof itemsList === 'string') { try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } }
-                if (itemsList && Array.isArray(itemsList)) itemsList.forEach(item => { if (item && item.name) productSales[item.name] = (productSales[item.name] || 0) + (item.quantity || 0); });
-            });
-            const topProducts = Object.entries(productSales).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            
             document.getElementById('mainContent').innerHTML = `
                 <div class="stats-grid">
                     <div class="stat-card"><i class="fas fa-chart-line"></i><h3>Total Vendas</h3><div class="value">${totalSales}</div></div>
                     <div class="stat-card"><i class="fas fa-money-bill-wave"></i><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div>
                     <div class="stat-card profit-card"><i class="fas fa-chart-pie"></i><h3>Lucro Total</h3><div class="value profit-value">${totalProfit.toLocaleString()} MZN</div></div>
                     <div class="stat-card"><i class="fas fa-box"></i><h3>Stock em Mão</h3><div class="value">${totalStock}</div></div>
+                    <div class="stat-card"><i class="fas fa-chart-simple"></i><h3>Produtos Vendidos</h3><div class="value">${totalSold}</div></div>
                 </div>
                 <div class="stats-grid">
                     <div class="stat-card"><i class="fas fa-calendar-day"></i><h3>Vendas Hoje</h3><div class="value">${vendasHojeTotal.toLocaleString()} MZN</div></div>
                     <div class="stat-card profit-card"><i class="fas fa-coins"></i><h3>Lucro Hoje</h3><div class="value profit-value">${lucroHoje.toLocaleString()} MZN</div></div>
                 </div>
-                <div class="data-table"><h3 style="padding: 20px;">🏆 Produtos Mais Vendidos</h3><table style="width:100%;"><thead><tr><th>Produto</th><th>Unidades</th></tr></thead><tbody>${topProducts.map(([name, qty]) => `<tr><td style="font-weight:700;"><strong>${name}</strong></td><td style="font-weight:700;">${qty}</td></tr>`).join('') || '<tr><td colspan="2">Sem dados ainda</p>'}</tbody>}</div>
-                <div class="data-table" style="margin-top: 25px;"><h3 style="padding: 20px;">🔄 Últimas Vendas</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 10).map(s => `<tr><td style="font-weight:600;">${s.invoice || 'N/A'}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller || 'N/A'}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(s.profit || 0).toLocaleString()} MZN</p>`).join('') || '<tr><td colspan="5">Sem vendas registadas</p>'}</tbody>}</div>
+                <div class="data-table" style="margin-top: 25px;"><h3 style="padding: 20px;">🔄 Últimas Vendas</h3><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 10).map(s => `<tr><td style="font-weight:600;">${s.invoice || 'N/A'}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller || 'N/A'}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(s.profit || 0).toLocaleString()} MZN</p>`).join('') || '<td><td colspan="5">Sem vendas registadas</p>'}</tbody>}</div>
             `;
         }
         
@@ -1558,9 +1462,8 @@
                                 <button class="btn btn-primary" onclick="addByBarcode()" style="padding: 12px 20px;"><i class="fas fa-plus"></i> Adicionar</button>
                             </div>
                             <div id="scanResult" class="scan-result"></div>
-                            <small style="color: #cbd5e1; display: block; margin-top: 8px;">🔊 Escaneie o código de barras - O produto será adicionado automaticamente ao carrinho</small>
                         </div>
-                        <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Pesquisar produto..." onkeyup="filterProducts()" style="width:100%;padding:12px;border-radius:24px;border:none;"></div>
+                        <div class="search-box"><input type="text" id="searchInput" placeholder="Pesquisar produto..." onkeyup="filterProducts()" style="width:100%;padding:12px;border-radius:24px;border:none;"></div>
                         <div class="products-grid" id="productsGrid" style="margin-top:20px;"></div>
                     </div>
                     <div class="cart-panel">
@@ -1590,7 +1493,7 @@
         
         window.filterProducts = function() {
             const search = document.getElementById('searchInput')?.value.toLowerCase() || '';
-            const filtered = products.filter(p => p.stock > 0 && (p.name.toLowerCase().includes(search) || (p.barcode && p.barcode.includes(search))));
+            const filtered = products.filter(p => p.stock > 0 && p.name.toLowerCase().includes(search));
             document.getElementById('productsGrid').innerHTML = filtered.map(p => `
                 <div class="product-card" onclick="addToCart(${p.id})">
                     <h4>${p.name}</h4>
@@ -1634,72 +1537,20 @@
             if (span) { span.innerHTML = change >= 0 ? `${change.toLocaleString()} MZN` : `Faltam ${Math.abs(change).toLocaleString()} MZN`; span.style.color = change >= 0 ? '#66d9ff' : '#ff5252'; }
         };
         
-        // ========== RECIBO CENTRALIZADO COM SEPARADORES "********" ==========
         function printReceipt(sale) {
             if (!sale) return;
             let itensStr = '';
             let itemsList = sale.items;
             if (typeof itemsList === 'string') { try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } }
             if (itemsList && Array.isArray(itemsList)) {
-                itemsList.forEach(item => { 
-                    const nome = item.name.length > 26 ? item.name.substring(0, 24) + '..' : item.name;
-                    const precoItem = item.price.toLocaleString();
-                    const subtotal = (item.price * item.quantity).toLocaleString();
-                    itensStr += `${nome}\n${item.quantity} x ${precoItem} MZN     ${subtotal} MZN\n`;
-                });
+                itemsList.forEach(item => { itensStr += `${item.name}\n${item.quantity} x ${item.price.toLocaleString()} MZN     ${(item.price * item.quantity).toLocaleString()} MZN\n`; });
             }
-            const dataFormatada = new Date(sale.date).toLocaleString('pt-MZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-            
-            let metodoPagamentoStr = '';
-            if (sale.payment_method === 'M-pesa') metodoPagamentoStr = 'M-Pesa 📱';
-            else if (sale.payment_method === 'E-mola') metodoPagamentoStr = 'E-mola 📶';
-            else metodoPagamentoStr = 'Dinheiro 💰';
-            
+            const dataFormatada = new Date(sale.date).toLocaleString('pt-MZ');
             const linhaSep = '********************************';
-            
-            let reciboHtml = `
-                <div style="text-align: center; font-family: 'Courier New', monospace; width: 100%; max-width: 280px; margin: 0 auto; padding: 8px 0; font-size: 11pt; font-weight: bold;">
-                    🦁 LIONS FASHION<br>
-                    Av. Julius Nyerere n°6600<br>
-                    Maputo - Moçambique<br>
-                    ${linhaSep}<br>
-                    FACTURA: ${sale.invoice}<br>
-                    DATA: ${dataFormatada}<br>
-                    ATENDENTE: ${sale.seller || 'Vendedor'}<br>
-                    ${linhaSep}<br>
-                    ${itensStr}
-                    ${linhaSep}<br>
-                    TOTAL: ${sale.total.toLocaleString()} MZN<br>
-                    PAGAMENTO: ${metodoPagamentoStr}<br>
-                    ${sale.payment_method === 'Dinheiro MZN' ? `RECEBIDO: ${(sale.received || 0).toLocaleString()} MZN<br>TROCO: ${(sale.change || 0).toLocaleString()} MZN<br>` : ''}
-                    ${linhaSep}<br>
-                    OBRIGADO PELA PREFERÊNCIA!<br>
-                    VOLTE SEMPRE!<br>
-                    ${linhaSep}<br>
-                </div>
-            `;
-            
-            try {
-                const win = window.open('', '_blank');
-                if (win) {
-                    win.document.write(`<html><head><title>Recibo LIONS</title><style>
-                        @page { size: 80mm auto; margin: 2mm; }
-                        body { 
-                            font-family: 'Courier New', monospace; 
-                            width: 280px;
-                            margin: 0 auto;
-                            padding: 5px;
-                            font-size: 12pt;
-                            text-align: center;
-                            font-weight: bold;
-                            background: white;
-                            color: black;
-                        }
-                        * { text-align: center; }
-                    </style></head><body>${reciboHtml}<script>window.print();setTimeout(()=>window.close(),600);<\/script></body></html>`);
-                    win.document.close();
-                } else { showToast('⚠️ Permita popups para imprimir o recibo!', 'warning'); }
-            } catch(e) { console.log("Erro ao imprimir:", e.message); }
+            let reciboHtml = `<div style="text-align:center;font-family:'Courier New',monospace;width:280px;margin:0 auto;padding:8px 0;">
+                🦁 LIONS FASHION<br>Av. Julius Nyerere n°6600<br>Maputo - Moçambique<br>${linhaSep}<br>FACTURA: ${sale.invoice}<br>DATA: ${dataFormatada}<br>ATENDENTE: ${sale.seller}<br>${linhaSep}<br>${itensStr}${linhaSep}<br>TOTAL: ${sale.total.toLocaleString()} MZN<br>PAGAMENTO: ${sale.payment_method}<br>${linhaSep}<br>OBRIGADO!<br>${linhaSep}<br></div>`;
+            const win = window.open('', '_blank');
+            if (win) { win.document.write(`<html><head><title>Recibo</title><style>body{font-family:'Courier New',monospace;width:280px;margin:0 auto;text-align:center;}</style></head><body>${reciboHtml}<script>window.print();setTimeout(()=>window.close(),600);<\/script></body></html>`); win.document.close(); }
         }
         
         window.finalizeSale = async function() {
@@ -1709,70 +1560,52 @@
             const received = parseFloat(document.getElementById('amountReceived')?.value) || 0;
             const paymentMethod = selectedPaymentMethod;
             if (paymentMethod === 'Dinheiro MZN' && received < total) { showToast('Valor insuficiente!', 'error'); return; }
-            const itensLimpos = currentCart.map(i => ({ name: i.name, price: i.price, quantity: i.quantity, profit: i.profit || 0 }));
-            const saleData = { 
-                date: new Date().toISOString(), 
-                total: total, 
-                profit: totalProfit,
-                items: JSON.stringify(itensLimpos), 
-                seller: currentUser?.name || "Vendedor", 
-                payment_method: paymentMethod, 
-                received: received, 
-                change: received - total, 
-                invoice: `INV-${Date.now()}` 
-            };
-            const { error } = await supabaseClient.from('sales').insert([saleData]);
-            if (error) { showToast('Erro: ' + error.message, 'error'); return; }
-            for (const item of currentCart) { const prod = products.find(p => p.id === item.id); if (prod) prod.stock -= item.quantity; }
-            saveProducts();
+            
+            for (const item of currentCart) {
+                const prod = products.find(p => p.id === item.id);
+                if (prod) {
+                    const oldStock = prod.stock;
+                    prod.stock -= item.quantity;
+                    prod.soldQuantity = (prod.initialStock || oldStock + (prod.soldQuantity || 0)) - prod.stock;
+                }
+            }
+            await saveProducts();
+            
+            const saleData = { date: new Date().toISOString(), total: total, profit: totalProfit, items: JSON.stringify(currentCart.map(i => ({ name: i.name, price: i.price, quantity: i.quantity }))), seller: currentUser?.name || "Vendedor", payment_method: paymentMethod, received: received, change: received - total, invoice: `INV-${Date.now()}` };
+            await supabaseClient.from('sales').insert([saleData]);
             printReceipt(saleData);
             sales.unshift(saleData);
-            const paymentIcon = paymentMethod === 'M-pesa' ? '📱' : paymentMethod === 'E-mola' ? '📶' : '💰';
-            notificarGerente('🛒 Nova Venda!', `${paymentIcon} ${saleData.seller} vendeu ${total.toLocaleString()} MZN via ${paymentMethod}`, 'success');
             currentCart = [];
             updateCartDisplay();
             filterProducts();
             if (document.getElementById('pageTitle')?.innerText.includes('Dashboard')) showDashboard();
-            showToast(`✅ Venda de ${total.toLocaleString()} MZN registrada via ${paymentMethod}!`, 'success');
+            showToast(`✅ Venda de ${total.toLocaleString()} MZN registrada!`, 'success');
         };
         
         window.fechoDoDia = async function() {
-            if (!confirm('⚠️ Tem certeza que deseja fechar o dia? Todas as vendas de hoje serão removidas permanentemente do Supabase.')) return;
+            if (!confirm('⚠️ Tem certeza que deseja fechar o dia? Todas as vendas de hoje serão removidas permanentemente.')) return;
             const hoje = new Date();
             const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
             const vendasHoje = sales.filter(s => new Date(s.date) >= inicioDia);
             const totalDia = vendasHoje.reduce((s, v) => s + v.total, 0);
-            const lucroDia = vendasHoje.reduce((s, v) => s + (v.profit || 0), 0);
-            const qtdVendas = vendasHoje.length;
-            if (qtdVendas === 0) { showToast('Não há vendas para fechar hoje!', 'warning'); return; }
-            notificarGerente('📅 Fecho do Dia', `Fechando dia com ${qtdVendas} vendas, Total: ${totalDia.toLocaleString()} MZN`, 'warning');
+            if (vendasHoje.length === 0) { showToast('Não há vendas para fechar hoje!', 'warning'); return; }
             for (const venda of vendasHoje) { await supabaseClient.from('sales').delete().eq('id', venda.id); }
             await loadAllData();
-            notificarGerente('✅ Fecho do Dia Concluído!', `Dia finalizado! ${qtdVendas} vendas, Total: ${totalDia.toLocaleString()} MZN`, 'success');
-            const pagamentos = {};
-            vendasHoje.forEach(v => { pagamentos[v.payment_method] = (pagamentos[v.payment_method] || 0) + v.total; });
-            let pagStr = '';
-            for(let [met, val] of Object.entries(pagamentos)) pagStr += `${met}: ${val.toLocaleString()} MZN\n`;
-            const relatorio = `\n  LIONS FASHION\n    RELATÓRIO DE FECHO\n-----------------------------\nDATA: ${hoje.toLocaleDateString('pt-MZ')}\nHORA: ${new Date().toLocaleTimeString()}\nOPERADOR: ${currentUser.name}\n-----------------------------\nTotal Vendas: ${qtdVendas}\nReceita: ${totalDia.toLocaleString()} MZN\n-----------------------------\n${pagStr}\n-----------------------------\n   ✅ FECHO REALIZADO ✅\n`;
-            const win = window.open('', '_blank');
-            win.document.write(`<html><head><title>Fecho do Dia</title><style>@page{size:58mm auto;margin:0}body{font-family:'Courier New',monospace;width:58mm;margin:0 auto;padding:2mm;font-size:13pt;white-space:pre-wrap;font-weight:bold;text-align:center;}</style></head><body><pre style="text-align:center;">${relatorio}</pre><script>window.print();setTimeout(()=>window.close(),1000);<\/script></body></html>`);
-            win.document.close();
-            showToast(`✅ Fecho do dia concluído! ${qtdVendas} vendas, ${totalDia.toLocaleString()} MZN`, 'success');
+            showToast(`✅ Fecho do dia concluído! ${vendasHoje.length} vendas, ${totalDia.toLocaleString()} MZN`, 'success');
         };
         
         function showStock() { 
             document.getElementById('mainContent').innerHTML = `
                 <h2 style="color:white;">📦 Gestão de Stock</h2>
-                <div class="barcode-scanner" style="margin-bottom: 20px;">
+                <div class="barcode-scanner" style="margin-bottom:20px;">
                     <label><i class="fas fa-barcode"></i> Escanear para atualizar stock</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="stockBarcodeInput" placeholder="Escaneie o código de barras do produto..." style="flex: 1;" autocomplete="off">
-                        <button class="btn btn-primary" onclick="scanForStock()" style="padding: 12px 20px;"><i class="fas fa-search"></i> Buscar</button>
+                    <div style="display:flex;gap:10px;">
+                        <input type="text" id="stockBarcodeInput" placeholder="Escaneie o código de barras..." style="flex:1;" autocomplete="off">
+                        <button class="btn btn-primary" onclick="scanForStock()"><i class="fas fa-search"></i> Buscar</button>
                     </div>
-                    <div id="productInfo" style="margin-top: 10px;"></div>
-                    <small style="color: #cbd5e1; display: block; margin-top: 8px;">🔊 Escaneie o código para ver informações e atualizar o stock rapidamente</small>
+                    <div id="productInfo" style="margin-top:10px;"></div>
                 </div>
-                <div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Código Barras</th><th>Stock</th><th>Preço Compra</th><th>Preço Venda</th><th>Lucro Unitário</th><th>Ação</th></tr></thead><tbody>${products.map(p => `<tr><td style="font-weight:700;"><strong>${p.name}</strong></td><td style="font-weight:700;">${p.category}</td><td style="font-family:monospace;">${p.barcode || '—'}</td><td style="font-size:1.2em;font-weight:800;color:#66d9ff;">${p.stock}</td><td style="font-weight:700;">${(p.purchasePrice || 0).toLocaleString()} MZN</p><p style="font-weight:700;">${p.salePrice.toLocaleString()} MZN</p><p style="color:#66d9ff;">${((p.salePrice - (p.purchasePrice || 0))).toLocaleString()} MZN</p><p><button class="btn btn-primary" onclick="updateStock(${p.id})"><i class="fas fa-edit"></i> Ajustar</button></p>`).join('')}</tbody>}</div>
+                <div class="data-table"><table style="width:100%;"><thead><tr><th>Produto</th><th>Categoria</th><th>Stock</th><th>Preço Venda</th><th>📦 Stock Inicial</th><th>✅ Vendidos</th><th>Ação</th></tr></thead><tbody>${products.map(p => `<tr><td><strong>${p.name}</strong></td><td>${p.category}</td><td style="color:#66d9ff;font-weight:800;">${p.stock}</td><td>${p.salePrice.toLocaleString()} MZN</p><td style="color:#00e676;">${(p.initialStock || p.stock)}</p><td style="color:#ffd700;">${(p.soldQuantity || 0)}</p><td><button class="btn btn-primary" onclick="updateStock(${p.id})">Ajustar</button></p>`).join('')}</tbody>}</div>
             `;
             setTimeout(() => document.getElementById('stockBarcodeInput')?.focus(), 100);
         }
@@ -1782,39 +1615,24 @@
             if (novo && !isNaN(novo)) { 
                 const prod = products.find(p => p.id === id); 
                 if (prod) { 
+                    const oldStock = prod.stock;
                     prod.stock = parseInt(novo); 
+                    prod.soldQuantity = (prod.initialStock || oldStock + (prod.soldQuantity || 0)) - prod.stock;
                     await saveProducts(); 
-                    showToast(`Stock de ${prod.name} atualizado!`, 'success'); 
+                    showToast(`Stock de ${prod.name} atualizado! Vendidos: ${prod.soldQuantity}`, 'success'); 
                     showStock(); 
                     if(document.getElementById('productsGrid')) filterProducts();
                 } 
             } 
         };
         
-        // ========== GESTÃO DE PRODUTOS REORGANIZADA COM EFEITOS 3D HD ==========
         function showProducts() { 
             const container = document.getElementById('mainContent');
             if (!products.length) {
-                container.innerHTML = `
-                    <div class="products-premium-header">
-                        <h1 class="products-premium-title"><i class="fas fa-cube"></i> Catálogo Premium</h1>
-                        <button class="btn btn-premium" onclick="showProductModal()"><i class="fas fa-plus-circle"></i> + Novo Produto</button>
-                    </div>
-                    <div class="empty-products">
-                        <i class="fas fa-box-open"></i>
-                        <h3 style="color:white;">Nenhum produto cadastrado</h3>
-                        <p style="color:#cbd5e1;">Clique em "Novo Produto" para começar</p>
-                    </div>
-                `;
+                container.innerHTML = `<div class="products-premium-header"><h1 class="products-premium-title"><i class="fas fa-cube"></i> Catálogo Premium</h1><button class="btn btn-premium" onclick="showProductModal()">+ Novo Produto</button></div><div class="empty-products"><i class="fas fa-box-open"></i><h3 style="color:white;">Nenhum produto cadastrado</h3></div>`;
                 return;
             }
-            container.innerHTML = `
-                <div class="products-premium-header">
-                    <h1 class="products-premium-title"><i class="fas fa-cube"></i> Catálogo Premium • <span style="color:white; background:none; -webkit-text-fill-color:white;">${products.length} produtos</span></h1>
-                    <button class="btn btn-premium" onclick="showProductModal()"><i class="fas fa-plus-circle"></i> + Novo Produto</button>
-                </div>
-                <div class="product-grid-3d" id="products3dGrid"></div>
-            `;
+            container.innerHTML = `<div class="products-premium-header"><h1 class="products-premium-title"><i class="fas fa-cube"></i> Catálogo Premium • ${products.length} produtos</h1><button class="btn btn-premium" onclick="showProductModal()">+ Novo Produto</button></div><div class="product-grid-3d" id="products3dGrid"></div>`;
             renderProducts3D();
         }
         
@@ -1823,32 +1641,14 @@
             if (!grid) return;
             grid.innerHTML = products.map(p => `
                 <div class="product-card-3d">
-                    <div class="product-card-header">
-                        <h3><i class="fas fa-tag"></i> ${escapeHtml(p.name)}</h3>
-                        <span class="product-badge"><i class="fas fa-folder"></i> ${p.category}</span>
-                        ${p.barcode ? `<div style="margin-top: 10px;"><i class="fas fa-barcode"></i> <span style="font-family:monospace; background:rgba(0,0,0,0.4); padding:4px 10px; border-radius:20px; font-size:0.75rem;">${p.barcode}</span></div>` : '<div style="margin-top: 8px;"><i class="far fa-circle"></i> <span style="font-size:0.7rem;">Sem código</span></div>'}
-                    </div>
+                    <div class="product-card-header"><h3><i class="fas fa-tag"></i> ${escapeHtml(p.name)}</h3><span class="product-badge">${p.category}</span>${p.barcode ? `<div style="margin-top:10px;"><i class="fas fa-barcode"></i> <span style="font-family:monospace;">${p.barcode}</span></div>` : ''}</div>
                     <div class="product-card-body">
-                        <div class="info-row">
-                            <span class="info-label"><i class="fas fa-chart-line"></i> Preço Compra</span>
-                            <span class="info-value">${(p.purchasePrice || 0).toLocaleString()} MZN</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label"><i class="fas fa-chart-simple"></i> Preço Venda</span>
-                            <span class="info-value price-sale">${p.salePrice.toLocaleString()} MZN</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label"><i class="fas fa-coins"></i> Lucro Unitário</span>
-                            <span class="info-value" style="color:#00e676;">${((p.salePrice - (p.purchasePrice || 0))).toLocaleString()} MZN</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label"><i class="fas fa-boxes"></i> Stock Atual</span>
-                            <span class="stock-badge-3d"><i class="fas fa-database"></i> ${p.stock} unidades</span>
-                        </div>
-                        <div class="action-buttons">
-                            <button class="btn btn-primary" onclick="editProduct(${p.id})" style="background: linear-gradient(145deg,#0099cc,#007799);"><i class="fas fa-edit"></i> Editar</button>
-                            <button class="btn btn-danger" onclick="deleteProduct(${p.id})" style="background: linear-gradient(145deg,#ff3b3b,#cc0000);"><i class="fas fa-trash-alt"></i> Excluir</button>
-                        </div>
+                        <div class="info-row"><span class="info-label">Preço Compra</span><span class="info-value">${(p.purchasePrice || 0).toLocaleString()} MZN</span></div>
+                        <div class="info-row"><span class="info-label">Preço Venda</span><span class="info-value price-sale">${p.salePrice.toLocaleString()} MZN</span></div>
+                        <div class="info-row"><span class="info-label">📦 Stock INICIAL</span><span class="info-value">${(p.initialStock || p.stock).toLocaleString()}</span></div>
+                        <div class="info-row"><span class="info-label">✅ Vendidos</span><span class="info-value" style="color:#00e676;">${(p.soldQuantity || 0).toLocaleString()}</span></div>
+                        <div class="info-row"><span class="info-label">Stock Atual</span><span class="stock-badge-3d">${p.stock} unidades</span></div>
+                        <div class="action-buttons"><button class="btn btn-primary" onclick="editProduct(${p.id})">Editar</button><button class="btn btn-danger" onclick="deleteProduct(${p.id})">Excluir</button></div>
                     </div>
                 </div>
             `).join('');
@@ -1859,14 +1659,15 @@
         window.showProductModal = function(product = null) { 
             const modal = document.createElement('div'); 
             modal.className = 'modal active'; 
-            modal.innerHTML = `<div class="modal-content" style="transform: scale(1); backdrop-filter: blur(20px);"><h3 style="font-size:1.8rem; margin-bottom:20px;"><i class="fas fa-gem"></i> ${product ? 'Editar Produto' : 'Novo Produto'}</h3>
-                <div class="form-group"><label>Nome</label><input type="text" id="prodName" value="${product ? escapeHtml(product.name) : ''}" placeholder="Ex: Ténis Air Max"></div>
+            modal.innerHTML = `<div class="modal-content"><h3>${product ? 'Editar Produto' : 'Novo Produto'}</h3>
+                <div class="form-group"><label>Nome</label><input type="text" id="prodName" value="${product ? escapeHtml(product.name) : ''}"></div>
                 <div class="form-group"><label>Categoria</label><select id="prodCategory">${CATEGORIAS.map(cat => `<option ${product?.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div>
-                <div class="form-group"><label><i class="fas fa-barcode"></i> Código de Barras</label><input type="text" id="prodBarcode" placeholder="Digite ou escaneie" value="${product ? (product.barcode || '') : ''}" style="font-family:monospace;"></div>
-                <div class="form-group"><label>Preço Compra (MZN)</label><input type="number" id="prodPurchase" value="${product ? product.purchasePrice : ''}" placeholder="0"></div>
-                <div class="form-group"><label>Preço Venda (MZN)</label><input type="number" id="prodSale" value="${product ? product.salePrice : ''}" placeholder="0"></div>
-                <div class="form-group"><label>Stock</label><input type="number" id="prodStock" value="${product ? product.stock : '0'}"></div>
-                <div style="display:flex;gap:12px; margin-top:15px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()" style="flex:1;"><i class="fas fa-times"></i> Cancelar</button><button class="btn btn-success" onclick="saveProduct(${product ? product.id : 'null'})" style="flex:1;"><i class="fas fa-save"></i> Salvar</button></div></div>`; 
+                <div class="form-group"><label>Código de Barras</label><input type="text" id="prodBarcode" value="${product ? (product.barcode || '') : ''}"></div>
+                <div class="form-group"><label>Preço Compra (MZN)</label><input type="number" id="prodPurchase" value="${product ? product.purchasePrice : 0}"></div>
+                <div class="form-group"><label>Preço Venda (MZN)</label><input type="number" id="prodSale" value="${product ? product.salePrice : 0}"></div>
+                <div class="form-group"><label>📦 Stock INICIAL (Total que entrou)</label><input type="number" id="prodInitialStock" value="${product ? (product.initialStock || product.stock) : 0}"></div>
+                <div class="form-group"><label>📊 Stock ATUAL</label><input type="number" id="prodStock" value="${product ? product.stock : 0}"></div>
+                <div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()">Cancelar</button><button class="btn btn-success" onclick="saveProduct(${product ? product.id : 'null'})">Salvar</button></div></div>`; 
             document.body.appendChild(modal); 
         };
         
@@ -1876,75 +1677,49 @@
             const barcode = document.getElementById('prodBarcode').value.trim(); 
             const purchasePrice = parseFloat(document.getElementById('prodPurchase').value) || 0; 
             const salePrice = parseFloat(document.getElementById('prodSale').value); 
-            const stock = parseInt(document.getElementById('prodStock').value); 
+            const initialStock = parseInt(document.getElementById('prodInitialStock').value) || 0;
+            const stock = parseInt(document.getElementById('prodStock').value) || 0;
+            const soldQuantity = initialStock - stock;
             const profit = salePrice - purchasePrice; 
-            if (!name || isNaN(salePrice)) { showToast('Preencha nome e preço de venda!', 'error'); return; } 
+            if (!name || isNaN(salePrice)) { showToast('Preencha nome e preço!', 'error'); return; } 
             if (id) { 
                 const idx = products.findIndex(p => p.id === id); 
-                if (idx !== -1) products[idx] = { ...products[idx], name, category, barcode: barcode || null, purchasePrice, salePrice, stock, profit }; 
+                if (idx !== -1) products[idx] = { ...products[idx], name, category, barcode: barcode || null, purchasePrice, salePrice, initialStock, stock, soldQuantity, profit }; 
             } else { 
                 const newId = Math.max(...products.map(p => p.id), 0) + 1; 
-                products.push({ id: newId, name, category, barcode: barcode || null, purchasePrice, salePrice, stock, profit }); 
+                products.push({ id: newId, name, category, barcode: barcode || null, purchasePrice, salePrice, initialStock, stock, soldQuantity, profit }); 
             } 
             await saveProducts(); 
             document.querySelector('.modal')?.remove(); 
             showProducts(); 
-            showToast('✅ Produto salvo com sucesso!', 'success'); 
+            showToast('✅ Produto salvo!', 'success'); 
         };
         
         window.editProduct = function(id) { const p = products.find(p => p.id === id); if (p) showProductModal(p); };
-        
-        window.deleteProduct = async function(id) { 
-            if (confirm('⚠️ Excluir produto permanentemente? Esta ação não pode ser desfeita.')) { 
-                products = products.filter(p => p.id !== id); 
-                await saveProducts(); 
-                showProducts(); 
-                showToast('🗑️ Produto removido com sucesso!', 'success'); 
-            } 
-        };
+        window.deleteProduct = async function(id) { if (confirm('Excluir produto?')) { products = products.filter(p => p.id !== id); await saveProducts(); showProducts(); showToast('Produto removido!', 'success'); } };
         
         function showSellers() { 
             const sellerList = users.filter(u => u.role === 'seller'); 
-            document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">👥 Gestão de Vendedores</h2><button class="btn btn-primary" onclick="showSellerModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Novo Vendedor</button><div class="data-table"><table style="width:100%;"><thead><tr><th>ID</th><th>Nome</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${sellerList.map(s => `<tr><td style="font-weight:700;">${s.userId}</td><td style="font-weight:700;">${s.name}</td><td style="font-weight:700;">${new Date(s.createdAt).toLocaleDateString()}</td><td style="font-weight:700;"><button class="btn btn-danger" onclick="deleteSeller(${s.id})">Excluir</button></td></tr>`).join('')}</tbody>}</div>`; 
+            document.getElementById('mainContent').innerHTML = `<h2 style="color:white;">👥 Gestão de Vendedores</h2><button class="btn btn-primary" onclick="showSellerModal()">Novo Vendedor</button><div class="data-table"><table><thead><tr><th>ID</th><th>Nome</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${sellerList.map(s => `<tr><td>${s.userId}</td><td>${s.name}</td><td>${new Date(s.createdAt).toLocaleDateString()}</td><td><button class="btn btn-danger" onclick="deleteSeller(${s.id})">Excluir</button></td></tr>`).join('')}</tbody></table></div>`; 
         }
         
-        window.showSellerModal = function() { const modal = document.createElement('div'); modal.className = 'modal active'; modal.innerHTML = `<div class="modal-content"><h3>Novo Vendedor</h3><div class="form-group"><label>ID</label><input type="text" id="sellerId" placeholder="VEND002"></div><div class="form-group"><label>Nome</label><input type="text" id="sellerName"></div><div class="form-group"><label>Senha</label><input type="password" id="sellerPass"></div><div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()">Cancelar</button><button class="btn btn-success" onclick="saveSeller()">Cadastrar</button></div></div>`; document.body.appendChild(modal); };
+        window.showSellerModal = function() { const modal = document.createElement('div'); modal.className = 'modal active'; modal.innerHTML = `<div class="modal-content"><h3>Novo Vendedor</h3><div class="form-group"><label>ID</label><input type="text" id="sellerId"></div><div class="form-group"><label>Nome</label><input type="text" id="sellerName"></div><div class="form-group"><label>Senha</label><input type="password" id="sellerPass"></div><div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="this.closest('.modal').remove()">Cancelar</button><button class="btn btn-success" onclick="saveSeller()">Cadastrar</button></div></div>`; document.body.appendChild(modal); };
         
         window.saveSeller = async function() { const userId = document.getElementById('sellerId').value; const name = document.getElementById('sellerName').value; const password = document.getElementById('sellerPass').value; if (!userId || !name || !password) { showToast('Preencha todos!', 'error'); return; } if (users.find(u => u.userId === userId)) { showToast('ID já existe!', 'error'); return; } const newId = Math.max(...users.map(u => u.id), 0) + 1; const newUser = { id: newId, userId, password, name, role: 'seller', createdAt: new Date().toISOString() }; users.push(newUser); await supabaseClient.from('users').upsert(newUser); document.querySelector('.modal').remove(); showSellers(); showToast('Vendedor cadastrado!', 'success'); };
-        
         window.deleteSeller = async function(id) { if (confirm('Excluir vendedor?')) { users = users.filter(u => u.id !== id); await supabaseClient.from('users').delete().eq('id', id); showSellers(); showToast('Vendedor excluído!', 'success'); } };
         
         function showReports() { 
             const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0); 
             const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0); 
-            const vendasPorVendedor = {}; 
-            sales.forEach(s => { vendasPorVendedor[s.seller] = (vendasPorVendedor[s.seller] || 0) + (s.total || 0); }); 
-            document.getElementById('mainContent').innerHTML = `<div class="stats-grid"><div class="stat-card"><h3>Total Vendas</h3><div class="value">${sales.length}</div></div><div class="stat-card"><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div><div class="stat-card profit-card"><h3>Lucro Total</h3><div class="value profit-value">${totalProfit.toLocaleString()} MZN</div></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:25px;"><div class="data-table" style="padding:20px;"><h3>👤 Vendas por Vendedor</h3><canvas id="vendedorChart"></canvas></div><div class="data-table" style="padding:20px;"><h3>📋 Histórico</h3><div style="max-height:400px;overflow-y:auto;"><table style="width:100%;"><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 30).map(s => `<td><td style="font-weight:600;">${s.invoice}</td><td style="font-weight:600;">${new Date(s.date).toLocaleString()}</td><td style="font-weight:600;">${s.seller}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(s.profit || 0).toLocaleString()} MZN</p>`).join('') || '<tr><td colspan="5">Sem vendas</p>'}</tbody>}</div></div></div>`; 
-            if (typeof Chart !== 'undefined') { 
-                new Chart(document.getElementById('vendedorChart'), { type: 'pie', data: { labels: Object.keys(vendasPorVendedor), datasets: [{ data: Object.values(vendasPorVendedor), backgroundColor: ['#00bfff', '#e2006e', '#00a859', '#ffb74d', '#29b6f6'] }] }, options: { responsive: true, animation: { duration: 1000 } } }); 
-            } 
+            document.getElementById('mainContent').innerHTML = `<div class="stats-grid"><div class="stat-card"><h3>Total Vendas</h3><div class="value">${sales.length}</div></div><div class="stat-card"><h3>Receita Total</h3><div class="value">${totalRevenue.toLocaleString()} MZN</div></div><div class="stat-card profit-card"><h3>Lucro Total</h3><div class="value profit-value">${totalProfit.toLocaleString()} MZN</div></div></div><div class="data-table"><h3>📋 Histórico</h3><table><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 30).map(s => `<td><td>${s.invoice}</td><td>${new Date(s.date).toLocaleString()}</td><td>${s.seller}</td><td>${(s.total || 0).toLocaleString()} MZN</p><p style="color:#66d9ff;">${(s.profit || 0).toLocaleString()} MZN</p>`).join('') || '<td><td colspan="5">Sem vendas</p>'}</tbody></table></div>`; 
         }
         
         window.onload = async () => {
             if (Notification.permission !== 'granted' && Notification.permission !== 'denied') Notification.requestPermission();
-            supabaseClient.channel('sales-channel')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sales' }, payload => { 
-                    if (currentUser && currentUser.role === 'admin') { 
-                        notificarGerente('🛒 Nova Venda!', `Venda de ${payload.new.total.toLocaleString()} MZN!`, 'success'); 
-                        loadAllData(); 
-                        if (document.getElementById('pageTitle')?.innerText.includes('Dashboard')) showDashboard(); 
-                    } 
-                })
-                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sales' }, () => { 
-                    if (currentUser && currentUser.role === 'admin') { 
-                        loadAllData(); 
-                        if (document.getElementById('pageTitle')?.innerText.includes('Dashboard')) showDashboard(); 
-                    } 
-                })
-                .subscribe();
+            supabaseClient.channel('sales-channel').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sales' }, () => { if (currentUser && currentUser.role === 'admin') loadAllData(); }).subscribe();
             await loadAllData();
             setupBarcodeListener();
-            console.log("🦁 LIONS FASHION - Sistema Pronto com Painel de Apagar Vendas!");
+            console.log("🦁 LIONS FASHION - Sistema Pronto com Stock Inicial, Vendidos e Relatório Mensal!");
         };
     </script>
 </body>
