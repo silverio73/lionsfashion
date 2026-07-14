@@ -1850,7 +1850,7 @@
             if (method === 'E-mola') document.getElementById('paymentEmola')?.classList.add('active');
         }
 
-        // ===== FINALIZAR VENDA - RECIBO PRETO E BRANCO OTIMIZADO =====
+        // ===== FINALIZAR VENDA - RECIBO COM IFRAME (SEM BLOQUEIO) =====
         window.finalizeSale = async function() {
             const btn = document.getElementById('finalizarVendaBtn');
             if (btn) btn.disabled = true;
@@ -1896,7 +1896,7 @@
                 }
                 await saveProducts();
                 
-                // 🔥 RECIBO PRETO E BRANCO - CENTRALIZADO - NEGRITO 15pt - RÁPIDO
+                // 🔥 IMPRIME COM IFRAME - SEM POPUP BLOQUEADO
                 printReceipt(saleData);
                 
                 sales.unshift(saleData);
@@ -1913,7 +1913,7 @@
             }
         };
 
-        // ===== RECIBO PRETO E BRANCO - CENTRALIZADO - NEGRITO 15pt =====
+        // ===== RECIBO - IMPRESSÃO VIA IFRAME (SEM BLOQUEIO) =====
         function printReceipt(sale) {
             if (!sale) return;
             
@@ -1941,68 +1941,117 @@
             
             const metodoPagamentoStr = sale.payment_method === 'M-pesa' ? 'M-Pesa' : 
                                        sale.payment_method === 'E-mola' ? 'E-mola' : 'Dinheiro';
-            const linhaSep = '══════════════════════════════════════';
             
             const reciboHtml = `
-                <div style="font-family:'Courier New',monospace;width:80mm;margin:0 auto;padding:6px 4px;font-size:15pt;font-weight:700;text-align:center;color:#000;background:#fff;line-height:1.5;">
-                    <div style="font-size:20pt;font-weight:900;letter-spacing:-1px;">🦁 LIONS FASHION</div>
-                    <div style="font-size:11pt;font-weight:500;color:#555;">Av. Julius Nyerere n°6600</div>
-                    <div style="font-size:11pt;font-weight:500;color:#555;">Maputo - Moçambique</div>
-                    <div style="font-size:11pt;font-weight:500;color:#555;margin-bottom:4px;">Tel: +258 84 123 4567</div>
-                    <div style="border-top:2px solid #000;margin:4px 0;"></div>
-                    <div style="font-size:14pt;font-weight:700;line-height:1.6;">
-                        <div><strong>FACTURA:</strong> ${sale.invoice}</div>
-                        <div><strong>DATA:</strong> ${dataFormatada}</div>
-                        <div><strong>ATENDENTE:</strong> ${sale.seller || 'Vendedor'}</div>
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Recibo LIONS FASHION</title>
+                    <style>
+                        @page { size: 80mm auto; margin: 2mm; }
+                        body { font-family: 'Courier New', monospace; margin: 0; padding: 4px; font-size: 15pt; font-weight: 700; text-align: center; color: #000; background: #fff; line-height: 1.5; }
+                        .receipt { width: 80mm; margin: 0 auto; padding: 4px 0; }
+                        .title { font-size: 20pt; font-weight: 900; letter-spacing: -1px; }
+                        .sub { font-size: 11pt; font-weight: 500; color: #555; }
+                        .line { border-top: 2px solid #000; margin: 4px 0; }
+                        .line-dash { border-top: 1px dashed #000; margin: 4px 0; }
+                        .info { font-size: 14pt; font-weight: 700; line-height: 1.6; }
+                        .items { text-align: left; padding: 4px 0; font-weight: 700; }
+                        .total-large { font-size: 18pt; font-weight: 900; padding: 4px 0; }
+                        .payment { font-size: 14pt; font-weight: 700; padding: 2px 0; }
+                        .footer { font-size: 15pt; font-weight: 900; padding: 6px 0; }
+                        .small { font-size: 8pt; color: #888; font-weight: 400; padding-top: 4px; }
+                        @media print { body { margin: 0; padding: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="receipt">
+                        <div class="title">🦁 LIONS FASHION</div>
+                        <div class="sub">Av. Julius Nyerere n°6600</div>
+                        <div class="sub">Maputo - Moçambique</div>
+                        <div class="sub" style="margin-bottom:4px;">Tel: +258 84 123 4567</div>
+                        <div class="line"></div>
+                        <div class="info">
+                            <div><strong>FACTURA:</strong> ${sale.invoice}</div>
+                            <div><strong>DATA:</strong> ${dataFormatada}</div>
+                            <div><strong>ATENDENTE:</strong> ${sale.seller || 'Vendedor'}</div>
+                        </div>
+                        <div class="line"></div>
+                        <div class="items">
+                            ${itensHtml}
+                        </div>
+                        <div class="line"></div>
+                        <div class="total-large">TOTAL: ${sale.total.toFixed(2)} MZN</div>
+                        <div class="payment">PAGAMENTO: ${metodoPagamentoStr}</div>
+                        ${sale.payment_method === 'Dinheiro MZN' ? `
+                        <div class="payment">RECEBIDO: ${(sale.received || 0).toFixed(2)} MZN<br>TROCO: ${(sale.change || 0).toFixed(2)} MZN</div>
+                        ` : ''}
+                        <div class="line-dash"></div>
+                        <div class="footer">OBRIGADO PELA PREFERÊNCIA!<br>VOLTE SEMPRE! 🦁</div>
+                        <div class="line"></div>
+                        <div class="small">Sistema LIONS FASHION</div>
                     </div>
-                    <div style="border-top:2px solid #000;margin:4px 0;"></div>
-                    <div style="text-align:left;padding:4px 0;font-weight:700;">
-                        ${itensHtml}
-                    </div>
-                    <div style="border-top:2px solid #000;margin:4px 0;"></div>
-                    <div style="font-size:18pt;font-weight:900;padding:4px 0;">
-                        TOTAL: ${sale.total.toFixed(2)} MZN
-                    </div>
-                    <div style="font-size:14pt;font-weight:700;padding:2px 0;">
-                        PAGAMENTO: ${metodoPagamentoStr}
-                    </div>
-                    ${sale.payment_method === 'Dinheiro MZN' ? `
-                    <div style="font-size:14pt;font-weight:700;padding:2px 0;">
-                        RECEBIDO: ${(sale.received || 0).toFixed(2)} MZN<br>
-                        TROCO: ${(sale.change || 0).toFixed(2)} MZN
-                    </div>
-                    ` : ''}
-                    <div style="border-top:1px dashed #000;margin:4px 0;"></div>
-                    <div style="font-size:15pt;font-weight:900;padding:6px 0;">
-                        OBRIGADO PELA PREFERÊNCIA!<br>
-                        VOLTE SEMPRE! 🦁
-                    </div>
-                    <div style="border-top:2px solid #000;margin:4px 0;"></div>
-                    <div style="font-size:8pt;color:#888;font-weight:400;padding-top:4px;">
-                        Sistema LIONS FASHION
-                    </div>
-                </div>
+                    <script>
+                        window.print();
+                        setTimeout(function() { window.close(); }, 300);
+                    <\/script>
+                </body>
+                </html>
             `;
             
+            // 🔥 MÉTODO: IFRAME OCULTO - NUNCA É BLOQUEADO PELO NAVEGADOR
             try {
-                const win = window.open('', '_blank', 'width=400,height=600');
-                if (win) {
-                    win.document.write(`<html><head><title>Recibo</title><style>
-                        @page { size: 80mm auto; margin: 0; }
-                        body { margin:0;padding:0;background:#fff;display:flex;justify-content:center;min-height:100vh;font-family:'Courier New',monospace; }
-                        * { box-sizing:border-box; }
-                        @media print { body { min-height:auto; } }
-                    </style></head><body>${reciboHtml}<script>
-                        window.print();
-                        setTimeout(() => window.close(), 200);
-                    <\/script></body></html>`);
-                    win.document.close();
-                } else {
-                    showToast('⚠️ Permita popups para imprimir o recibo!', 'warning');
+                const iframe = document.createElement('iframe');
+                iframe.style.position = 'fixed';
+                iframe.style.top = '-9999px';
+                iframe.style.left = '-9999px';
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.border = 'none';
+                iframe.style.visibility = 'hidden';
+                document.body.appendChild(iframe);
+                
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                iframeDoc.open();
+                iframeDoc.write(reciboHtml);
+                iframeDoc.close();
+                
+                // Dispara a impressão após carregar
+                setTimeout(function() {
+                    try {
+                        iframe.contentWindow.print();
+                        setTimeout(function() {
+                            if (iframe.parentNode) {
+                                document.body.removeChild(iframe);
+                            }
+                        }, 500);
+                    } catch(e) {
+                        console.log("Erro no iframe:", e);
+                        // Fallback
+                        try {
+                            const win = window.open('', '_blank', 'width=400,height=600');
+                            if (win) {
+                                win.document.write(reciboHtml);
+                                win.document.close();
+                            }
+                        } catch(e2) {}
+                    }
+                }, 300);
+                
+            } catch(e) {
+                // Fallback: nova janela
+                try {
+                    const win = window.open('', '_blank', 'width=400,height=600');
+                    if (win) {
+                        win.document.write(reciboHtml);
+                        win.document.close();
+                    } else {
+                        showToast('⚠️ Permita popups para imprimir!', 'warning');
+                    }
+                } catch(e2) {
+                    showToast('❌ Erro ao imprimir recibo!', 'error');
                 }
-            } catch(e) { 
-                console.log("Erro ao imprimir:", e.message);
-                showToast('❌ Erro ao imprimir recibo!', 'error');
             }
         }
 
