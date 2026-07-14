@@ -11,7 +11,6 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        /* ===== TEMAS ===== */
         :root {
             --primary-color: #FF9900;
             --primary-dark: #e68a00;
@@ -32,7 +31,6 @@
             --topbar-bg: #131921;
         }
         
-        /* Tema Dark */
         .theme-dark {
             --primary-color: #FF9900;
             --primary-dark: #e68a00;
@@ -48,7 +46,6 @@
             --topbar-bg: #0a0a1a;
         }
         
-        /* Tema 1 - Amazon (suave) */
         .theme-amazon {
             --primary-color: #e67e22;
             --secondary-color: #2980b9;
@@ -61,7 +58,6 @@
             --topbar-bg: #1a252f;
         }
         
-        /* Tema 2 - Rosa Elegante */
         .theme-rose {
             --primary-color: #e84393;
             --secondary-color: #6c5ce7;
@@ -74,7 +70,6 @@
             --topbar-bg: #1a0a1a;
         }
         
-        /* Tema 3 - Azul Serenidade */
         .theme-blue {
             --primary-color: #0984e3;
             --secondary-color: #00b894;
@@ -87,7 +82,6 @@
             --topbar-bg: #0a1a2a;
         }
         
-        /* Tema 4 - Verde Suave */
         .theme-green-soft {
             --primary-color: #00b894;
             --secondary-color: #0984e3;
@@ -109,7 +103,6 @@
             transition: all 0.4s ease;
         }
         
-        /* Theme Toggle Button */
         .theme-toggle-btn {
             position: fixed;
             bottom: 80px;
@@ -129,9 +122,7 @@
             align-items: center;
             justify-content: center;
         }
-        .theme-toggle-btn:hover {
-            transform: scale(1.1) rotate(30deg);
-        }
+        .theme-toggle-btn:hover { transform: scale(1.1) rotate(30deg); }
         
         .theme-panel {
             position: fixed;
@@ -162,12 +153,8 @@
             color: var(--text-color);
             font-size: 12pt;
         }
-        .theme-panel .theme-option:hover {
-            background: var(--bg-color);
-        }
-        .theme-panel .theme-option.active {
-            border-color: var(--primary-color);
-        }
+        .theme-panel .theme-option:hover { background: var(--bg-color); }
+        .theme-panel .theme-option.active { border-color: var(--primary-color); }
         .theme-panel .theme-option .color-circle {
             width: 28px;
             height: 28px;
@@ -191,7 +178,6 @@
             50% { transform: translateY(-8px); }
         }
         
-        /* ===== LOGIN ===== */
         .login-container { 
             position: fixed; 
             top: 0; 
@@ -216,7 +202,6 @@
             animation: fadeInUp 0.6s ease;
             box-shadow: var(--shadow-premium);
         }
-        
         .login-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 12px 48px rgba(0,0,0,0.1);
@@ -277,7 +262,6 @@
         
         .app-container { display: none; min-height: 100vh; background: var(--bg-color); }
         
-        /* ===== TOP BAR ===== */
         .top-bar { 
             background: var(--topbar-bg);
             position: fixed; 
@@ -307,7 +291,6 @@
             align-items: center;
             gap: 20px;
         }
-        
         .top-bar-right .date-display {
             color: rgba(255,255,255,0.5);
             font-size: 11pt;
@@ -339,18 +322,12 @@
             overflow: hidden;
             background: var(--primary-color);
         }
-        .user-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
         .user-name-display {
             color: rgba(255,255,255,0.8);
             font-size: 12pt;
             font-weight: 500;
         }
         
-        /* ===== SIDEBAR ===== */
         .sidebar { 
             width: 280px; 
             background: var(--sidebar-bg);
@@ -405,7 +382,6 @@
         .nav-item i { width: 22px; font-size: 1.1em; text-align: center; }
         .nav-item:hover { background: rgba(255,255,255,0.05); color: white; transform: translateX(4px); }
         .nav-item.active { background: var(--primary-color); color: white; font-weight: 600; }
-        .nav-item.active i { color: white; }
         
         .main-content { 
             margin-left: 280px; 
@@ -417,7 +393,6 @@
             transition: all 0.4s ease;
         }
         
-        /* ===== STATS ===== */
         .stats-grid { 
             display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
@@ -453,7 +428,6 @@
         .stat-card.profit-card .stat-icon { color: var(--success); }
         .stat-card.profit-card .value { color: var(--success); }
         
-        /* ===== TABELA ===== */
         .sales-management-table {
             background: var(--card-color);
             border-radius: var(--radius);
@@ -473,13 +447,11 @@
             gap: 12px;
             background: var(--bg-color);
         }
-        
         .sales-management-table .table-header h3 {
             color: var(--text-color);
             font-size: 1.1rem;
             font-weight: 700;
         }
-        
         .sales-management-table .table-header .total-badge {
             background: var(--primary-color);
             padding: 6px 20px;
@@ -488,17 +460,14 @@
             font-weight: 700;
             font-size: 12pt;
         }
-        
         .sales-management-table .table-container {
             max-height: 420px;
             overflow-y: auto;
         }
-        
         .sales-management-table table {
             width: 100%;
             border-collapse: collapse;
         }
-        
         .sales-management-table th {
             background: var(--bg-color);
             color: var(--text-light);
@@ -511,21 +480,18 @@
             z-index: 10;
             border-bottom: 2px solid var(--border-color);
         }
-        
         .sales-management-table td {
             padding: 12px 20px;
             border-bottom: 1px solid var(--border-color);
             color: var(--text-color);
             font-size: 13pt;
         }
-        
         .sales-management-table tr:hover td { background: var(--bg-color); }
         .sales-management-table .month-total { background: var(--bg-color); font-weight: 700; }
         .sales-management-table .month-total td { border-top: 2px solid var(--primary-color); }
         .sales-management-table .profit-cell { color: var(--success); font-weight: 600; }
         .sales-management-table .total-cell { color: var(--primary-color); font-weight: 700; }
         
-        /* ===== PRODUTOS ===== */
         .products-grid-amazon {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -542,13 +508,11 @@
             cursor: pointer;
             box-shadow: var(--shadow);
         }
-        
         .product-card-amazon:hover {
             transform: translateY(-6px);
             border-color: var(--primary-color);
             box-shadow: var(--shadow-premium);
         }
-        
         .product-card-amazon .product-image {
             width: 100%;
             height: 160px;
@@ -559,7 +523,6 @@
             font-size: 3.5em;
             position: relative;
         }
-        
         .product-card-amazon .product-image .category-badge {
             position: absolute;
             top: 10px;
@@ -571,35 +534,29 @@
             color: white;
             font-weight: 500;
         }
-        
         .product-card-amazon .product-info {
             padding: 14px 16px;
         }
-        
         .product-card-amazon .product-info h4 {
             color: var(--text-color);
             font-size: 13pt;
             margin-bottom: 4px;
             font-weight: 600;
         }
-        
         .product-card-amazon .product-info .price-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        
         .product-card-amazon .product-info .price {
             color: var(--primary-color);
             font-size: 1.2em;
             font-weight: 700;
         }
-        
         .product-card-amazon .product-info .stock-info {
             color: var(--text-light);
             font-size: 11pt;
         }
-        
         .product-card-amazon .add-btn {
             background: var(--primary-color);
             border: none;
@@ -615,7 +572,6 @@
         }
         .product-card-amazon .add-btn:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(230,126,34,0.3); }
         
-        /* ===== CART ===== */
         .cart-item { 
             background: var(--card-color);
             padding: 12px 14px; 
@@ -630,7 +586,6 @@
         }
         .cart-item:hover { border-color: var(--primary-color); }
         
-        /* ===== PAYMENT ===== */
         .payment-option {
             flex: 1;
             padding: 12px;
@@ -651,7 +606,6 @@
         .payment-option.emola.active { border-color: #00a859; background: #e8f5e9; }
         .payment-option i { font-size: 1.6em; margin-bottom: 4px; display: block; }
         
-        /* ===== BUTTONS ===== */
         .btn { 
             padding: 12px 24px; 
             border: none; 
@@ -672,9 +626,7 @@
         .btn-warning:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(243,156,18,0.3); }
         .btn-whatsapp { background: #25D366; color: white; }
         .btn-whatsapp:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(37,211,102,0.3); }
-        .btn:active { transform: translateY(0); }
         
-        /* ===== MODAL ===== */
         .modal { 
             position: fixed; 
             top: 0; 
@@ -700,7 +652,6 @@
             box-shadow: var(--shadow-premium);
         }
         
-        /* ===== DATA TABLE ===== */
         .data-table { 
             background: var(--card-color);
             border-radius: var(--radius); 
@@ -718,7 +669,6 @@
         .data-table td { padding: 10px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-color); font-size: 13pt; }
         .data-table tr:hover td { background: var(--bg-color); }
         
-        /* ===== TOAST ===== */
         .toast { 
             position: fixed; 
             bottom: 30px; 
@@ -740,7 +690,6 @@
         .toast.error { border-left-color: var(--danger); }
         .toast.warning { border-left-color: var(--warning); }
         
-        /* ===== ONLINE BADGE ===== */
         .online-badge { 
             position: fixed; 
             bottom: 24px; 
@@ -765,7 +714,6 @@
             animation: pulseGlow 1.5s infinite;
         }
         
-        /* ===== SEARCH ===== */
         .search-box {
             margin-bottom: 14px;
             display: flex;
@@ -781,7 +729,6 @@
         .search-box i { color: var(--text-light); font-size: 1.1em; }
         .search-box input { background: transparent; border: none; padding: 12px 14px; color: var(--text-color); font-size: 14pt; width: 100%; outline: none; }
         
-        /* ===== POS ===== */
         .pos-interface { display: grid; grid-template-columns: 1fr 400px; gap: 20px; height: calc(100vh - 130px); }
         .products-panel, .cart-panel { 
             background: var(--card-color);
@@ -832,7 +779,6 @@
         }
         .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary-color); background: var(--card-color); }
         
-        /* ===== RELATÓRIO ===== */
         .monthly-report {
             background: var(--card-color);
             border-radius: var(--radius);
@@ -856,7 +802,6 @@
         }
         .monthly-report .report-header h3 i { color: var(--primary-color); margin-right: 8px; }
         .monthly-report .report-header .report-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-        
         .monthly-report .report-summary {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -886,7 +831,6 @@
         
         .menu-toggle { display: none; position: fixed; top: 14px; left: 14px; z-index: 1001; background: var(--topbar-bg); border: none; padding: 10px 12px; border-radius: 10px; cursor: pointer; color: white; font-size: 14pt; border: 1px solid rgba(255,255,255,0.05); }
         
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 1024px) {
             .pos-interface { grid-template-columns: 1fr; height: auto; }
             .top-bar { left: 0; padding-left: 60px; }
@@ -909,7 +853,6 @@
 <body class="theme-amazon">
     <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
     
-    <!-- Theme Toggle Button -->
     <button class="theme-toggle-btn" onclick="toggleThemePanel()" title="Alterar Tema">
         <i class="fas fa-palette"></i>
     </button>
@@ -1005,7 +948,6 @@
         <span id="onlineStatus">Conectando...</span>
     </div>
 
-    <!-- MODAL DEVOLUÇÃO -->
     <div id="devolucaoModal" class="modal">
         <div class="modal-content">
             <h3 style="margin-bottom: 16px; font-size:1.3rem;"><i class="fas fa-undo-alt" style="color:var(--primary-color);"></i> Devolução</h3>
@@ -1037,7 +979,6 @@
         </div>
     </div>
 
-    <!-- MODAL AUTORIZAÇÃO -->
     <div id="authModal" class="modal">
         <div class="modal-content">
             <h3 style="margin-bottom: 16px; font-size:1.3rem;"><i class="fas fa-lock" style="color:var(--primary-color);"></i> Autorização</h3>
@@ -1064,7 +1005,6 @@
             localStorage.setItem('lions-theme', theme);
         }
         
-        // Load saved theme
         const savedTheme = localStorage.getItem('lions-theme') || 'theme-amazon';
         document.body.className = savedTheme;
         document.querySelector(`.theme-option[data-theme="${savedTheme}"]`)?.classList.add('active');
@@ -1257,12 +1197,12 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon"><i class="fas fa-money-bill-wave"></i></div>
-                        <div class="value">${totalRevenue.toLocaleString()} MZN</div>
+                        <div class="value">${totalRevenue.toFixed(2)} MZN</div>
                         <div class="label">Receita Total</div>
                     </div>
                     <div class="stat-card profit-card">
                         <div class="stat-icon"><i class="fas fa-chart-pie"></i></div>
-                        <div class="value">${totalProfit.toLocaleString()} MZN</div>
+                        <div class="value">${totalProfit.toFixed(2)} MZN</div>
                         <div class="label">Lucro Total</div>
                     </div>
                     <div class="stat-card">
@@ -1275,23 +1215,23 @@
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
-                        <div class="value">${vendasHojeTotal.toLocaleString()} MZN</div>
+                        <div class="value">${vendasHojeTotal.toFixed(2)} MZN</div>
                         <div class="label">Vendas Hoje</div>
                     </div>
                     <div class="stat-card profit-card">
                         <div class="stat-icon"><i class="fas fa-coins"></i></div>
-                        <div class="value">${lucroHoje.toLocaleString()} MZN</div>
+                        <div class="value">${lucroHoje.toFixed(2)} MZN</div>
                         <div class="label">Lucro Hoje</div>
                     </div>
                     ${dadosMesAtual ? `
                     <div class="stat-card">
                         <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
-                        <div class="value">${dadosMesAtual[1].total.toLocaleString()} MZN</div>
+                        <div class="value">${dadosMesAtual[1].total.toFixed(2)} MZN</div>
                         <div class="label">Vendas do Mês</div>
                     </div>
                     <div class="stat-card profit-card">
                         <div class="stat-icon"><i class="fas fa-trophy"></i></div>
-                        <div class="value">${dadosMesAtual[1].profit.toLocaleString()} MZN</div>
+                        <div class="value">${dadosMesAtual[1].profit.toFixed(2)} MZN</div>
                         <div class="label">Lucro do Mês</div>
                     </div>
                     ` : ''}
@@ -1315,11 +1255,11 @@
                     
                     <div class="report-summary">
                         <div class="summary-item revenue">
-                            <div class="number">${monthlyData.reduce((sum, [_, d]) => sum + d.total, 0).toLocaleString()} MZN</div>
+                            <div class="number">${monthlyData.reduce((sum, [_, d]) => sum + d.total, 0).toFixed(2)} MZN</div>
                             <div class="label">Receita Total</div>
                         </div>
                         <div class="summary-item profit">
-                            <div class="number">${monthlyData.reduce((sum, [_, d]) => sum + d.profit, 0).toLocaleString()} MZN</div>
+                            <div class="number">${monthlyData.reduce((sum, [_, d]) => sum + d.profit, 0).toFixed(2)} MZN</div>
                             <div class="label">Lucro Total</div>
                         </div>
                         <div class="summary-item">
@@ -1336,7 +1276,7 @@
                         <div class="table-header">
                             <h3>📋 Vendas por Mês</h3>
                             <span class="total-badge">
-                                ${monthlyData.reduce((sum, [_, d]) => sum + d.total, 0).toLocaleString()} MZN
+                                ${monthlyData.reduce((sum, [_, d]) => sum + d.total, 0).toFixed(2)} MZN
                             </span>
                         </div>
                         <div class="table-container">
@@ -1358,8 +1298,8 @@
                                             <tr style="${isCurrentMonth ? 'border-left: 3px solid var(--primary-color);' : ''}">
                                                 <td style="font-weight:700;">${mes} ${isCurrentMonth ? '⭐' : ''}</td>
                                                 <td style="text-align:center;">${dados.count}</td>
-                                                <td style="text-align:right;" class="total-cell">${dados.total.toLocaleString()}</td>
-                                                <td style="text-align:right;" class="profit-cell">${dados.profit.toLocaleString()}</td>
+                                                <td style="text-align:right;" class="total-cell">${dados.total.toFixed(2)}</td>
+                                                <td style="text-align:right;" class="profit-cell">${dados.profit.toFixed(2)}</td>
                                                 <td style="text-align:right;">${margin.toFixed(1)}%</td>
                                             </tr>
                                         `;
@@ -1368,8 +1308,8 @@
                                         <tr class="month-total">
                                             <td><strong>TOTAL GERAL</strong></td>
                                             <td style="text-align:center;"><strong>${monthlyData.reduce((sum, [_, d]) => sum + d.count, 0)}</strong></td>
-                                            <td style="text-align:right;"><strong>${monthlyData.reduce((sum, [_, d]) => sum + d.total, 0).toLocaleString()} MZN</strong></td>
-                                            <td style="text-align:right;"><strong>${monthlyData.reduce((sum, [_, d]) => sum + d.profit, 0).toLocaleString()} MZN</strong></td>
+                                            <td style="text-align:right;"><strong>${monthlyData.reduce((sum, [_, d]) => sum + d.total, 0).toFixed(2)} MZN</strong></td>
+                                            <td style="text-align:right;"><strong>${monthlyData.reduce((sum, [_, d]) => sum + d.profit, 0).toFixed(2)} MZN</strong></td>
                                             <td style="text-align:right;">
                                                 <strong>${(monthlyData.reduce((sum, [_, d]) => sum + d.profit, 0) / monthlyData.reduce((sum, [_, d]) => sum + d.total, 0) * 100).toFixed(1)}%</strong>
                                             </td>
@@ -1397,7 +1337,7 @@
                         <div class="table-header"><h3>🔄 Últimas Vendas</h3></div>
                         <table style="width:100%;">
                             <thead><tr><th>Factura</th><th style="text-align:right;">Total</th></tr></thead>
-                            <tbody>${sales.slice(0, 5).map(s => `<tr><td style="font-weight:500;">${s.invoice || 'N/A'}</td><td style="text-align:right;font-weight:700;color:var(--primary-color);">${(s.total || 0).toLocaleString()} MZN</td></tr>`).join('') || '<tr><td colspan="2" style="text-align:center;color:var(--text-light);padding:20px;">Sem vendas</td></tr>'}</tbody>
+                            <tbody>${sales.slice(0, 5).map(s => `<tr><td style="font-weight:500;">${s.invoice || 'N/A'}</td><td style="text-align:right;font-weight:700;color:var(--primary-color);">${(s.total || 0).toFixed(2)} MZN</td></tr>`).join('') || '<tr><td colspan="2" style="text-align:center;color:var(--text-light);padding:20px;">Sem vendas</td></tr>'}</tbody>
                         </table>
                     </div>
                 </div>
@@ -1460,8 +1400,8 @@
             const mensagem = `🦁 *LIONS FASHION - Relatório de Vendas*
 📅 Data: ${hoje.toLocaleDateString('pt-MZ')}
 📊 Total de Vendas: ${totalVendas}
-💰 Receita Total: ${totalRevenue.toLocaleString()} MZN
-📈 Lucro Total: ${totalProfit.toLocaleString()} MZN
+💰 Receita Total: ${totalRevenue.toFixed(2)} MZN
+📈 Lucro Total: ${totalProfit.toFixed(2)} MZN
 
 📍 Av. Julius Nyerere n°6600 • Maputo - Moçambique
 `;
@@ -1507,8 +1447,8 @@
                     <tr>
                         <td style="padding:8px 14px;border:1px solid #ddd;font-weight:600;">${nome}</td>
                         <td style="padding:8px 14px;border:1px solid #ddd;text-align:center;font-weight:700;">${dados.qty}</td>
-                        <td style="padding:8px 14px;border:1px solid #ddd;text-align:right;font-weight:700;color:#e67e22;">${dados.total.toLocaleString()} MZN</td>
-                        <td style="padding:8px 14px;border:1px solid #ddd;text-align:right;font-weight:700;color:#00a859;">${dados.profit.toLocaleString()} MZN</td>
+                        <td style="padding:8px 14px;border:1px solid #ddd;text-align:right;font-weight:700;color:#e67e22;">${dados.total.toFixed(2)} MZN</td>
+                        <td style="padding:8px 14px;border:1px solid #ddd;text-align:right;font-weight:700;color:#00a859;">${dados.profit.toFixed(2)} MZN</td>
                     </tr>
                 `;
             }
@@ -1551,11 +1491,11 @@
                     
                     <div class="summary">
                         <div class="summary-item revenue">
-                            <div class="number">${totalDia.toLocaleString()} MZN</div>
+                            <div class="number">${totalDia.toFixed(2)} MZN</div>
                             <div class="label">Receita do Dia</div>
                         </div>
                         <div class="summary-item profit">
-                            <div class="number">${lucroDia.toLocaleString()} MZN</div>
+                            <div class="number">${lucroDia.toFixed(2)} MZN</div>
                             <div class="label">Lucro do Dia</div>
                         </div>
                         <div class="summary-item">
@@ -1583,8 +1523,8 @@
                             <tr class="total-row">
                                 <td><strong>TOTAL</strong></td>
                                 <td style="text-align:center;"><strong>${Object.values(produtosVendidos).reduce((s, d) => s + d.qty, 0)}</strong></td>
-                                <td style="text-align:right;"><strong>${totalDia.toLocaleString()} MZN</strong></td>
-                                <td style="text-align:right;"><strong>${lucroDia.toLocaleString()} MZN</strong></td>
+                                <td style="text-align:right;"><strong>${totalDia.toFixed(2)} MZN</strong></td>
+                                <td style="text-align:right;"><strong>${lucroDia.toFixed(2)} MZN</strong></td>
                             </tr>
                         </tbody>
                     </table>
@@ -1643,8 +1583,8 @@
                     <tr>
                         <td style="padding:8px 14px;border:1px solid #ddd;font-weight:700;">${mes}</td>
                         <td style="padding:8px 14px;border:1px solid #ddd;text-align:center;font-weight:700;">${d.count}</td>
-                        <td style="padding:8px 14px;border:1px solid #ddd;text-align:right;font-weight:700;color:#e67e22;">${d.total.toLocaleString()} MZN</td>
-                        <td style="padding:8px 14px;border:1px solid #ddd;text-align:right;font-weight:700;color:#00a859;">${d.profit.toLocaleString()} MZN</td>
+                        <td style="padding:8px 14px;border:1px solid #ddd;text-align:right;font-weight:700;color:#e67e22;">${d.total.toFixed(2)} MZN</td>
+                        <td style="padding:8px 14px;border:1px solid #ddd;text-align:right;font-weight:700;color:#00a859;">${d.profit.toFixed(2)} MZN</td>
                         <td style="padding:8px 14px;border:1px solid #ddd;text-align:right;font-weight:700;">${margin.toFixed(1)}%</td>
                     </tr>
                 `;
@@ -1686,11 +1626,11 @@
                     
                     <div class="summary">
                         <div class="summary-item revenue">
-                            <div class="number">${totalRevenue.toLocaleString()} MZN</div>
+                            <div class="number">${totalRevenue.toFixed(2)} MZN</div>
                             <div class="label">Receita Total</div>
                         </div>
                         <div class="summary-item profit">
-                            <div class="number">${totalProfit.toLocaleString()} MZN</div>
+                            <div class="number">${totalProfit.toFixed(2)} MZN</div>
                             <div class="label">Lucro Total</div>
                         </div>
                         <div class="summary-item">
@@ -1718,8 +1658,8 @@
                             <tr class="total-row">
                                 <td><strong>TOTAL GERAL</strong></td>
                                 <td style="text-align:center;"><strong>${totalSales}</strong></td>
-                                <td style="text-align:right;"><strong>${totalRevenue.toLocaleString()} MZN</strong></td>
-                                <td style="text-align:right;"><strong>${totalProfit.toLocaleString()} MZN</strong></td>
+                                <td style="text-align:right;"><strong>${totalRevenue.toFixed(2)} MZN</strong></td>
+                                <td style="text-align:right;"><strong>${totalProfit.toFixed(2)} MZN</strong></td>
                                 <td style="text-align:right;">
                                     <strong>${totalRevenue > 0 ? (totalProfit / totalRevenue * 100).toFixed(1) : 0}%</strong>
                                 </td>
@@ -1838,7 +1778,7 @@
                         <div class="product-info">
                             <h4>${p.name}</h4>
                             <div class="price-row">
-                                <span class="price">${p.salePrice.toLocaleString()} MZN</span>
+                                <span class="price">${p.salePrice.toFixed(2)} MZN</span>
                                 <span class="stock-info"><i class="fas fa-box"></i> ${p.stock}</span>
                             </div>
                             <button class="add-btn"><i class="fas fa-plus-circle"></i> Adicionar</button>
@@ -1876,15 +1816,15 @@
                     <div class="cart-item">
                         <div>
                             <strong style="font-size:14pt;">${item.name}</strong>
-                            <br><span style="font-size:13pt;">${item.price.toLocaleString()} MZN x ${item.quantity}</span>
-                            <br><small style="color:var(--text-light);">Subtotal: ${(item.price * item.quantity).toLocaleString()} MZN</small>
+                            <br><span style="font-size:13pt;">${item.price.toFixed(2)} MZN x ${item.quantity}</span>
+                            <br><small style="color:var(--text-light);">Subtotal: ${(item.price * item.quantity).toFixed(2)} MZN</small>
                         </div>
                         <button class="btn btn-danger" style="padding:4px 10px; font-size:12pt;" onclick="removeFromCart(${idx})">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 `).join('') || '<p style="text-align:center;color:var(--text-light);padding:20px;">Carrinho vazio</p>';
-                document.getElementById('cartTotal').innerHTML = `${total.toLocaleString()} MZN`;
+                document.getElementById('cartTotal').innerHTML = `${total.toFixed(2)} MZN`;
                 calculateChange();
             }
         };
@@ -1897,7 +1837,7 @@
             const change = received - total;
             const span = document.getElementById('changeAmount');
             if (span) { 
-                span.innerHTML = change >= 0 ? `${change.toLocaleString()} MZN` : `Faltam ${Math.abs(change).toLocaleString()} MZN`; 
+                span.innerHTML = change >= 0 ? `${change.toFixed(2)} MZN` : `Faltam ${Math.abs(change).toFixed(2)} MZN`; 
                 span.style.color = change >= 0 ? 'var(--primary-color)' : 'var(--danger)'; 
             }
         };
@@ -1910,9 +1850,8 @@
             if (method === 'E-mola') document.getElementById('paymentEmola')?.classList.add('active');
         }
 
-        // ===== FINALIZAR VENDA - MAIS RÁPIDO =====
+        // ===== FINALIZAR VENDA - RECIBO PRETO E BRANCO OTIMIZADO =====
         window.finalizeSale = async function() {
-            // Desabilitar botão para evitar duplo clique
             const btn = document.getElementById('finalizarVendaBtn');
             if (btn) btn.disabled = true;
             
@@ -1957,16 +1896,16 @@
                 }
                 await saveProducts();
                 
-                // ✅ IMPRIME O RECIBO IMEDIATAMENTE - SUPER RÁPIDO (BOLDADO 15pt)
+                // 🔥 RECIBO PRETO E BRANCO - CENTRALIZADO - NEGRITO 15pt - RÁPIDO
                 printReceipt(saleData);
                 
                 sales.unshift(saleData);
-                notificarGerente('🛒 Nova Venda', `${saleData.seller} vendeu ${total.toLocaleString()} MZN`);
+                notificarGerente('🛒 Nova Venda', `${saleData.seller} vendeu ${total.toFixed(2)} MZN`);
                 
                 currentCart = [];
                 updateCartDisplay();
                 filterProductsAmazon();
-                showToast(`✅ Venda de ${total.toLocaleString()} MZN registrada!`, 'success');
+                showToast(`✅ Venda de ${total.toFixed(2)} MZN registrada!`, 'success');
             } catch (err) {
                 showToast('❌ Erro ao finalizar venda!', 'error');
             } finally {
@@ -1974,23 +1913,25 @@
             }
         };
 
-        // ===== RECIBO BOLDADO 15pt - SUPER NÍTIDO =====
+        // ===== RECIBO PRETO E BRANCO - CENTRALIZADO - NEGRITO 15pt =====
         function printReceipt(sale) {
             if (!sale) return;
             
-            let itensStr = '';
+            let itensHtml = '';
             let itemsList = sale.items;
             if (typeof itemsList === 'string') { try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } }
             if (itemsList && Array.isArray(itemsList)) {
                 itemsList.forEach(item => { 
-                    const nome = item.name.length > 30 ? item.name.substring(0, 28) + '..' : item.name;
+                    const nome = item.name.length > 28 ? item.name.substring(0, 26) + '..' : item.name;
                     const precoItem = item.price.toFixed(2);
                     const subtotal = (item.price * item.quantity).toFixed(2);
-                    itensStr += `<div style="display:flex;justify-content:space-between;font-size:15pt;font-weight:700;padding:3px 0;border-bottom:1px solid #eee;">
-                        <span style="font-weight:800;">${nome}</span>
-                        <span style="font-weight:700;">${item.quantity} × ${precoItem}</span>
-                        <span style="font-weight:900;color:#e67e22;">${subtotal} MZN</span>
-                    </div>`;
+                    itensHtml += `
+                        <div style="display:flex;justify-content:space-between;font-weight:700;padding:2px 0;border-bottom:1px solid #ccc;font-size:15pt;">
+                            <span style="font-weight:800;">${nome}</span>
+                            <span style="font-weight:700;">${item.quantity}×${precoItem}</span>
+                            <span style="font-weight:900;">${subtotal} MZN</span>
+                        </div>
+                    `;
                 });
             }
             
@@ -1998,29 +1939,28 @@
                 day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' 
             });
             
-            const metodoPagamentoStr = sale.payment_method === 'M-pesa' ? 'M-Pesa 📱' : 
-                                       sale.payment_method === 'E-mola' ? 'E-mola 📶' : 'Dinheiro 💰';
-            const linhaSep = '══════════════════════════════════════════════════';
-            const linhaSep2 = '──────────────────────────────────────────────────';
+            const metodoPagamentoStr = sale.payment_method === 'M-pesa' ? 'M-Pesa' : 
+                                       sale.payment_method === 'E-mola' ? 'E-mola' : 'Dinheiro';
+            const linhaSep = '══════════════════════════════════════';
             
             const reciboHtml = `
-                <div style="text-align:center;font-family:'Courier New',monospace;width:400px;margin:0 auto;padding:14px 10px;font-size:15pt;font-weight:700;color:#111;background:white;border:3px solid #e67e22;border-radius:10px;">
-                    <div style="font-size:22pt;font-weight:900;color:#e67e22;letter-spacing:-1px;">🦁 LIONS FASHION</div>
-                    <div style="font-size:11pt;color:#565959;font-weight:500;">Av. Julius Nyerere n°6600</div>
-                    <div style="font-size:11pt;color:#565959;font-weight:500;">Maputo - Moçambique</div>
-                    <div style="font-size:11pt;color:#565959;font-weight:500;margin-bottom:8px;">Tel: +258 84 123 4567</div>
-                    ${linhaSep}<br>
+                <div style="font-family:'Courier New',monospace;width:80mm;margin:0 auto;padding:6px 4px;font-size:15pt;font-weight:700;text-align:center;color:#000;background:#fff;line-height:1.5;">
+                    <div style="font-size:20pt;font-weight:900;letter-spacing:-1px;">🦁 LIONS FASHION</div>
+                    <div style="font-size:11pt;font-weight:500;color:#555;">Av. Julius Nyerere n°6600</div>
+                    <div style="font-size:11pt;font-weight:500;color:#555;">Maputo - Moçambique</div>
+                    <div style="font-size:11pt;font-weight:500;color:#555;margin-bottom:4px;">Tel: +258 84 123 4567</div>
+                    <div style="border-top:2px solid #000;margin:4px 0;"></div>
                     <div style="font-size:14pt;font-weight:700;line-height:1.6;">
                         <div><strong>FACTURA:</strong> ${sale.invoice}</div>
                         <div><strong>DATA:</strong> ${dataFormatada}</div>
                         <div><strong>ATENDENTE:</strong> ${sale.seller || 'Vendedor'}</div>
                     </div>
-                    ${linhaSep}<br>
-                    <div style="text-align:left;padding:6px 0;font-weight:700;">
-                        ${itensStr}
+                    <div style="border-top:2px solid #000;margin:4px 0;"></div>
+                    <div style="text-align:left;padding:4px 0;font-weight:700;">
+                        ${itensHtml}
                     </div>
-                    ${linhaSep}<br>
-                    <div style="font-size:20pt;font-weight:900;color:#e67e22;padding:4px 0;">
+                    <div style="border-top:2px solid #000;margin:4px 0;"></div>
+                    <div style="font-size:18pt;font-weight:900;padding:4px 0;">
                         TOTAL: ${sale.total.toFixed(2)} MZN
                     </div>
                     <div style="font-size:14pt;font-weight:700;padding:2px 0;">
@@ -2032,40 +1972,29 @@
                         TROCO: ${(sale.change || 0).toFixed(2)} MZN
                     </div>
                     ` : ''}
-                    ${linhaSep2}<br>
-                    <div style="font-size:15pt;font-weight:900;color:#e67e22;padding:6px 0;">
+                    <div style="border-top:1px dashed #000;margin:4px 0;"></div>
+                    <div style="font-size:15pt;font-weight:900;padding:6px 0;">
                         OBRIGADO PELA PREFERÊNCIA!<br>
                         VOLTE SEMPRE! 🦁
                     </div>
-                    ${linhaSep}<br>
-                    <div style="font-size:9pt;color:#999;font-weight:400;">
-                        Sistema LIONS FASHION • www.lionsfashion.co.mz
+                    <div style="border-top:2px solid #000;margin:4px 0;"></div>
+                    <div style="font-size:8pt;color:#888;font-weight:400;padding-top:4px;">
+                        Sistema LIONS FASHION
                     </div>
                 </div>
             `;
             
             try {
-                const win = window.open('', '_blank', 'width=420,height=680');
+                const win = window.open('', '_blank', 'width=400,height=600');
                 if (win) {
-                    win.document.write(`<html><head><title>Recibo LIONS FASHION</title><style>
+                    win.document.write(`<html><head><title>Recibo</title><style>
                         @page { size: 80mm auto; margin: 0; }
-                        body { 
-                            font-family: 'Courier New', monospace; 
-                            margin: 0; 
-                            padding: 0;
-                            background: white;
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-                            min-height: 100vh;
-                        }
-                        * { box-sizing: border-box; }
-                        @media print {
-                            body { min-height: auto; }
-                        }
+                        body { margin:0;padding:0;background:#fff;display:flex;justify-content:center;min-height:100vh;font-family:'Courier New',monospace; }
+                        * { box-sizing:border-box; }
+                        @media print { body { min-height:auto; } }
                     </style></head><body>${reciboHtml}<script>
                         window.print();
-                        setTimeout(() => window.close(), 300);
+                        setTimeout(() => window.close(), 200);
                     <\/script></body></html>`);
                     win.document.close();
                 } else {
