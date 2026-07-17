@@ -465,7 +465,7 @@
         }
 
         // ============================================================
-        // 4. ACUMULAR VENDA MENSAL (CORRIGIDO - UPSERT)
+        // 4. ACUMULAR VENDA MENSAL
         // ============================================================
         async function acumularVendaMensal(venda) {
             const data = new Date(venda.date);
@@ -475,7 +475,6 @@
             if (typeof items === 'string') { try { items = JSON.parse(items); } catch (e) { items = []; } }
             const totalItems = items.reduce((sum, i) => sum + (i.quantity || 0), 0);
 
-            // PRIMEIRO: VERIFICAR SE O MÊS ESTÁ FECHADO
             const { data: existing, error: fetchError } = await supabaseClient
                 .from('monthly_sales')
                 .select('*')
@@ -492,7 +491,6 @@
                 return;
             }
 
-            // USAR UPSERT PARA EVITAR RACE CONDITION
             const { error } = await supabaseClient
                 .from('monthly_sales')
                 .upsert({
@@ -506,7 +504,6 @@
 
             if (error) console.error('Erro ao atualizar monthly_sales:', error);
 
-            // RECARREGAR DADOS
             const { data: newMonthly } = await supabaseClient.from('monthly_sales').select('*').order('month_year', { ascending: true });
             if (newMonthly) monthlySalesData = newMonthly;
         }
@@ -622,7 +619,7 @@
         };
 
         // ============================================================
-        // 8. DASHBOARD (RESUMIDO PARA ECONOMIZAR ESPAÇO)
+        // 8. DASHBOARD
         // ============================================================
         function showDashboard() {
             const totalSales = sales.length;
@@ -865,7 +862,7 @@
         }
 
         // ============================================================
-        // 12. FINALIZAR VENDA - IMPRESSÃO INSTANTÂNEA (CORRIGIDO)
+        // 12. FINALIZAR VENDA - IMPRESSÃO INSTANTÂNEA (APENAS 1 RECIBO)
         // ============================================================
         window.finalizeSale = async function() {
             const btn = document.getElementById('finalizarVendaBtn');
@@ -873,10 +870,9 @@
             try {
                 if (currentCart.length === 0) { showToast('Carrinho vazio', 'warning'); return; }
 
-                // VERIFICAR MÊS FECHADO EM TEMPO REAL
                 const mesFechado = await verificarMesFechado();
                 if (mesFechado) {
-                    showToast('⚠️ Este mês está fechado! Não é possível fazer vendas.', 'error');
+                    showToast('⚠️ Este mês está fechado!', 'error');
                     return;
                 }
 
@@ -915,7 +911,7 @@
                 await saveProducts();
                 await acumularVendaMensal(saleData);
 
-                // === IMPRESSÃO INSTANTÂNEA (MENOS DE 1 SEGUNDO) ===
+                // === IMPRESSÃO INSTANTÂNEA (APENAS 1 RECIBO) ===
                 imprimirReciboInstantaneo(saleData);
 
                 sales.unshift(saleData);
@@ -929,12 +925,12 @@
         };
 
         // ============================================================
-        // 13. IMPRESSÃO INSTANTÂNEA OTIMIZADA (MENOS DE 1 SEGUNDO)
+        // 13. IMPRESSÃO INSTANTÂNEA - APENAS 1 RECIBO
         // ============================================================
         function imprimirReciboInstantaneo(sale) {
             if (!sale) return;
 
-            // GERAR HTML DO RECIBO (OTIMIZADO)
+            // GERAR HTML DO RECIBO
             let itensHtml = '';
             let itemsList = sale.items;
             if (typeof itemsList === 'string') { try { itemsList = JSON.parse(itemsList); } catch (e) { itemsList = []; } }
@@ -977,6 +973,7 @@
                         }
                         .title { font-size: 15pt; font-weight: 900; text-align: center; }
                         .sub { font-size: 8pt; text-align: center; color: #555; font-weight: 500; }
+                        .sub-bold { font-size: 9pt; text-align: center; color: #000; font-weight: 900; }
                         .line { border-top: 2px solid #000; margin: 2px 0; }
                         .line-dash { border-top: 1px dashed #000; margin: 2px 0; }
                         .info { font-size: 8pt; font-weight: 600; line-height: 1.4; }
@@ -988,7 +985,7 @@
                 </head>
                 <body>
                     <div class="title">🦁 LIONS FASHION</div>
-                    <div class="sub">Av. Julius Nyerere n°6600</div>
+                    <div class="sub-bold">Av. Julius Nyerere n°6600</div>
                     <div class="sub">Maputo - Moçambique</div>
                     <div class="line"></div>
                     <div class="info">
@@ -1009,9 +1006,8 @@
                     <div class="line"></div>
                     <div class="small">Sistema LIONS FASHION</div>
                     <script>
-                        // IMPRESSÃO INSTANTÂNEA - SEM DELAY DESNECESSÁRIO
+                        // IMPRESSÃO INSTANTÂNEA - APENAS 1 RECIBO
                         window.print();
-                        // FECHA AUTOMATICAMENTE APÓS IMPRIMIR
                         setTimeout(function() {
                             try { window.close(); } catch(e) {}
                         }, 100);
@@ -1020,33 +1016,66 @@
                 </html>
             `;
 
-            // MÉTODO 1: IFRAME OCULTO (MAIS RÁPIDO)
-            const iframe = document.createElement('iframe');
-            iframe.style.position = 'fixed';
-            iframe.style.top = '-9999px';
-            iframe.style.left = '-9999px';
-            iframe.style.width = '0';
-            iframe.style.height = '0';
-            iframe.style.border = 'none';
-            document.body.appendChild(iframe);
+            // APENAS IFRAME OCULTO - NÃO IMPRIME DUAS VEZES
+            try {
+                const iframe = document.createElement('iframe');
+                iframe.style.position = 'fixed';
+                iframe.style.top = '-9999px';
+                iframe.style.left = '-9999px';
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.border = 'none';
+                document.body.appendChild(iframe);
 
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-            iframeDoc.open();
-            iframeDoc.write(htmlRecibo);
-            iframeDoc.close();
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                iframeDoc.open();
+                iframeDoc.write(htmlRecibo);
+                iframeDoc.close();
 
-            // REMOVER IFRAME APÓS IMPRESSÃO
-            setTimeout(() => {
-                if (iframe.parentNode) {
-                    document.body.removeChild(iframe);
+                // IMPRIME APENAS UMA VEZ
+                setTimeout(() => {
+                    try {
+                        if (iframe.contentWindow) {
+                            iframe.contentWindow.print();
+                        }
+                    } catch(e) {
+                        console.log('Erro na impressão:', e);
+                        // FALLBACK: popup (apenas se iframe falhar)
+                        const win = window.open('', '_blank', 'width=400,height=600');
+                        if (win) {
+                            win.document.write(htmlRecibo);
+                            win.document.close();
+                        } else {
+                            showToast('⚠️ Permita popups para imprimir!', 'warning');
+                        }
+                    }
+                    // REMOVER IFRAME
+                    setTimeout(() => {
+                        if (iframe.parentNode) {
+                            document.body.removeChild(iframe);
+                        }
+                    }, 500);
+                }, 100);
+
+            } catch(e) {
+                console.log('Erro ao criar iframe:', e);
+                // FALLBACK: popup
+                const win = window.open('', '_blank', 'width=400,height=600');
+                if (win) {
+                    win.document.write(htmlRecibo);
+                    win.document.close();
+                } else {
+                    showToast('⚠️ Permita popups para imprimir!', 'warning');
                 }
-            }, 300);
+            }
 
-            // MÉTODO 2: MODAL VISUAL (PARA REIMPRESSÃO)
+            // MODAL VISUAL (APENAS PARA CONSULTA, NÃO IMPRIME)
             mostrarReciboModal(sale);
         }
 
-        // ===== MODAL VISUAL =====
+        // ============================================================
+        // 14. MODAL VISUAL (APENAS VISUALIZAÇÃO)
+        // ============================================================
         function mostrarReciboModal(sale) {
             let itensHtml = '';
             let itemsList = sale.items;
@@ -1070,7 +1099,7 @@
 
             box.innerHTML = `
                 <div class="receipt-title">🦁 LIONS FASHION</div>
-                <div class="receipt-sub">Av. Julius Nyerere n°6600</div>
+                <div class="receipt-sub" style="font-weight:900;font-size:12pt;">Av. Julius Nyerere n°6600</div>
                 <div class="receipt-sub" style="margin-bottom:4px;">Maputo - Moçambique</div>
                 <div class="receipt-line"></div>
                 <div class="receipt-info">
@@ -1152,7 +1181,7 @@
         }
 
         // ============================================================
-        // 14. DEVOLUÇÃO
+        // 15. DEVOLUÇÃO
         // ============================================================
         function abrirModalDevolucao() {
             document.getElementById('devolucaoNome').value = '';
@@ -1215,7 +1244,7 @@
         };
 
         // ============================================================
-        // 15. AUTORIZAÇÃO
+        // 16. AUTORIZAÇÃO
         // ============================================================
         function abrirAuthModal() {
             document.getElementById('authCodigo').value = '';
@@ -1232,7 +1261,7 @@
         }
 
         // ============================================================
-        // 16. GESTÃO DE VENDAS
+        // 17. GESTÃO DE VENDAS
         // ============================================================
         async function showManageSalesPanel() {
             await loadAllData();
@@ -1286,7 +1315,7 @@
         }
 
         // ============================================================
-        // 17. STOCK
+        // 18. STOCK
         // ============================================================
         function showStock() {
             document.getElementById('mainContent').innerHTML = `
@@ -1323,7 +1352,7 @@
         };
 
         // ============================================================
-        // 18. PRODUTOS
+        // 19. PRODUTOS
         // ============================================================
         function showProducts() {
             const container = document.getElementById('mainContent');
@@ -1424,7 +1453,7 @@
         };
 
         // ============================================================
-        // 19. VENDEDORES
+        // 20. VENDEDORES
         // ============================================================
         function showSellers() {
             const sellerList = users.filter(u => u.role === 'seller');
@@ -1493,7 +1522,7 @@
         };
 
         // ============================================================
-        // 20. RELATÓRIOS
+        // 21. RELATÓRIOS
         // ============================================================
         function showReports() {
             const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0);
@@ -1547,7 +1576,7 @@
         }
 
         // ============================================================
-        // 21. FECHO DO DIA
+        // 22. FECHO DO DIA
         // ============================================================
         window.fechoDoDia = async function() {
             if (!confirm('⚠️ Tem certeza que deseja fechar o dia?')) return;
@@ -1572,7 +1601,7 @@
         };
 
         // ============================================================
-        // 22. BARCODE LISTENER
+        // 23. BARCODE LISTENER
         // ============================================================
         function setupBarcodeListener() {
             document.addEventListener('keydown', function(e) {
@@ -1626,7 +1655,7 @@
         }
 
         // ============================================================
-        // 23. INICIALIZAÇÃO
+        // 24. INICIALIZAÇÃO
         // ============================================================
         window.onload = async () => {
             if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
