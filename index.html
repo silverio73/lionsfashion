@@ -218,7 +218,7 @@
         .receipt-box .receipt-sub { font-size: 10pt; text-align: center; color: #555; font-weight: 500; }
         .receipt-box .receipt-line { border-top: 2px solid #000; margin: 6px 0; }
         .receipt-box .receipt-line-dash { border-top: 1px dashed #000; margin: 6px 0; }
-        .receipt-box .receipt-info { font-size: 11pt; font-weight: 600; line-height: 1.6; }
+        .receipt-box .receipt-info { font-size: 11pt; font-weight: 600; line-height: 1.6; text-align: center; }
         .receipt-box .receipt-item { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #eee; font-size: 12pt; font-weight: 700; }
         .receipt-box .receipt-total { font-size: 16pt; font-weight: 900; text-align: center; padding: 4px 0; }
         .receipt-box .receipt-payment { font-size: 12pt; font-weight: 700; text-align: center; padding: 2px 0; }
@@ -862,7 +862,7 @@
         }
 
         // ============================================================
-        // 12. FINALIZAR VENDA - IMPRESSÃO INSTANTÂNEA (APENAS 1 RECIBO)
+        // 12. FINALIZAR VENDA - IMPRESSÃO RÁPIDA (APENAS 1 RECIBO)
         // ============================================================
         window.finalizeSale = async function() {
             const btn = document.getElementById('finalizarVendaBtn');
@@ -911,7 +911,7 @@
                 await saveProducts();
                 await acumularVendaMensal(saleData);
 
-                // === IMPRESSÃO INSTANTÂNEA (APENAS 1 RECIBO) ===
+                // === IMPRESSÃO RÁPIDA (APENAS 1 RECIBO) ===
                 imprimirReciboInstantaneo(saleData);
 
                 sales.unshift(saleData);
@@ -930,7 +930,7 @@
         function imprimirReciboInstantaneo(sale) {
             if (!sale) return;
 
-            // GERAR HTML DO RECIBO
+            // GERAR HTML DOS ITENS
             let itensHtml = '';
             let itemsList = sale.items;
             if (typeof itemsList === 'string') { try { itemsList = JSON.parse(itemsList); } catch (e) { itemsList = []; } }
@@ -938,10 +938,10 @@
                 itemsList.forEach(item => {
                     const nome = item.name.length > 22 ? item.name.substring(0, 20) + '..' : item.name;
                     itensHtml +=
-                        `<div style="display:flex;justify-content:space-between;padding:1px 0;font-size:9pt;font-weight:700;border-bottom:1px dotted #ddd;">
-                            <span>${nome}</span>
-                            <span>${item.quantity}×${item.price.toFixed(2)}</span>
-                            <span>${(item.price * item.quantity).toFixed(2)}</span>
+                        `<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:10pt;font-weight:700;border-bottom:1px dotted #ddd;text-align:center;">
+                            <span style="font-weight:900;">${nome}</span>
+                            <span style="font-weight:900;">${item.quantity}×${item.price.toFixed(2)}</span>
+                            <span style="font-weight:900;">${(item.price * item.quantity).toFixed(2)}</span>
                         </div>`;
                 });
             }
@@ -952,6 +952,7 @@
             const metodoPagamentoStr = sale.payment_method === 'M-pesa' ? 'M-Pesa' :
                 sale.payment_method === 'E-mola' ? 'E-mola' : 'Dinheiro';
 
+            // HTML DO RECIBO COMPLETO
             const htmlRecibo = `
                 <!DOCTYPE html>
                 <html>
@@ -963,30 +964,31 @@
                         body {
                             font-family: 'Courier New', monospace;
                             margin: 0;
-                            padding: 1mm 2mm;
-                            font-size: 9pt;
-                            font-weight: 700;
+                            padding: 2mm;
+                            font-size: 13pt;
+                            font-weight: 900;
                             color: #000;
                             background: #fff;
-                            line-height: 1.2;
+                            line-height: 1.3;
                             width: 80mm;
                         }
-                        .title { font-size: 15pt; font-weight: 900; text-align: center; }
-                        .sub { font-size: 8pt; text-align: center; color: #555; font-weight: 500; }
-                        .sub-bold { font-size: 9pt; text-align: center; color: #000; font-weight: 900; }
-                        .line { border-top: 2px solid #000; margin: 2px 0; }
-                        .line-dash { border-top: 1px dashed #000; margin: 2px 0; }
-                        .info { font-size: 8pt; font-weight: 600; line-height: 1.4; }
-                        .total { font-size: 13pt; font-weight: 900; text-align: center; padding: 2px 0; }
-                        .payment { font-size: 9pt; font-weight: 700; text-align: center; padding: 1px 0; }
-                        .footer { font-size: 11pt; font-weight: 900; text-align: center; padding: 3px 0; }
-                        .small { font-size: 6.5pt; color: #888; font-weight: 400; text-align: center; }
+                        .title { font-size: 16pt; font-weight: 900; text-align: center; }
+                        .sub { font-size: 10pt; text-align: center; color: #000; font-weight: 900; }
+                        .sub-light { font-size: 9pt; text-align: center; color: #000; font-weight: 700; }
+                        .line { border-top: 2px solid #000; margin: 3px 0; }
+                        .line-dash { border-top: 1px dashed #000; margin: 3px 0; }
+                        .info { font-size: 9pt; font-weight: 900; line-height: 1.5; text-align: center; }
+                        .item { display: flex; justify-content: space-between; padding: 2px 0; font-size: 10pt; font-weight: 900; border-bottom: 1px dotted #ddd; text-align: center; }
+                        .total { font-size: 14pt; font-weight: 900; text-align: center; padding: 3px 0; }
+                        .payment { font-size: 10pt; font-weight: 900; text-align: center; padding: 2px 0; }
+                        .footer { font-size: 12pt; font-weight: 900; text-align: center; padding: 4px 0; }
+                        .small { font-size: 7pt; color: #888; font-weight: 700; text-align: center; }
                     </style>
                 </head>
                 <body>
-                    <div class="title">🦁 LIONS FASHION</div>
-                    <div class="sub-bold">Av. Julius Nyerere n°6600</div>
-                    <div class="sub">Maputo - Moçambique</div>
+                    <div class="title">LIONS FASHION</div>
+                    <div class="sub">Av. Julius Nyerere n°6600</div>
+                    <div class="sub-light">Maputo - Moçambique</div>
                     <div class="line"></div>
                     <div class="info">
                         <div><strong>FACTURA:</strong> ${sale.invoice}</div>
@@ -999,14 +1001,14 @@
                     <div class="total">TOTAL: ${sale.total.toFixed(2)} MZN</div>
                     <div class="payment">PAGAMENTO: ${metodoPagamentoStr}</div>
                     ${sale.payment_method === 'Dinheiro MZN' ? `
-                    <div class="payment">RECEBIDO: ${(sale.received || 0).toFixed(2)} MZN<br>TROCO: ${(sale.change || 0).toFixed(2)} MZN</div>
+                    <div class="payment">RECEBIDO: ${(sale.received || 0).toFixed(2)} MZN</div>
+                    <div class="payment">TROCO: ${(sale.change || 0).toFixed(2)} MZN</div>
                     ` : ''}
                     <div class="line-dash"></div>
-                    <div class="footer">OBRIGADO PELA PREFERÊNCIA!<br>VOLTE SEMPRE! 🦁</div>
+                    <div class="footer">OBRIGADO PELA PREFERÊNCIA!<br>VOLTE SEMPRE!</div>
                     <div class="line"></div>
                     <div class="small">Sistema LIONS FASHION</div>
                     <script>
-                        // IMPRESSÃO INSTANTÂNEA - APENAS 1 RECIBO
                         window.print();
                         setTimeout(function() {
                             try { window.close(); } catch(e) {}
@@ -1016,7 +1018,7 @@
                 </html>
             `;
 
-            // APENAS IFRAME OCULTO - NÃO IMPRIME DUAS VEZES
+            // IMPRESSÃO VIA IFRAME - RÁPIDA
             try {
                 const iframe = document.createElement('iframe');
                 iframe.style.position = 'fixed';
@@ -1032,49 +1034,39 @@
                 iframeDoc.write(htmlRecibo);
                 iframeDoc.close();
 
-                // IMPRIME APENAS UMA VEZ
                 setTimeout(() => {
                     try {
                         if (iframe.contentWindow) {
                             iframe.contentWindow.print();
                         }
                     } catch(e) {
-                        console.log('Erro na impressão:', e);
-                        // FALLBACK: popup (apenas se iframe falhar)
                         const win = window.open('', '_blank', 'width=400,height=600');
                         if (win) {
                             win.document.write(htmlRecibo);
                             win.document.close();
-                        } else {
-                            showToast('⚠️ Permita popups para imprimir!', 'warning');
                         }
                     }
-                    // REMOVER IFRAME
                     setTimeout(() => {
                         if (iframe.parentNode) {
                             document.body.removeChild(iframe);
                         }
-                    }, 500);
-                }, 100);
+                    }, 300);
+                }, 50);
 
             } catch(e) {
-                console.log('Erro ao criar iframe:', e);
-                // FALLBACK: popup
                 const win = window.open('', '_blank', 'width=400,height=600');
                 if (win) {
                     win.document.write(htmlRecibo);
                     win.document.close();
-                } else {
-                    showToast('⚠️ Permita popups para imprimir!', 'warning');
                 }
             }
 
-            // MODAL VISUAL (APENAS PARA CONSULTA, NÃO IMPRIME)
+            // MODAL VISUAL - APENAS PARA CONSULTA
             mostrarReciboModal(sale);
         }
 
         // ============================================================
-        // 14. MODAL VISUAL (APENAS VISUALIZAÇÃO)
+        // 14. MODAL VISUAL (APENAS VISUALIZAÇÃO - NÃO IMPRIME)
         // ============================================================
         function mostrarReciboModal(sale) {
             let itensHtml = '';
@@ -1084,7 +1076,7 @@
                 itemsList.forEach(item => {
                     const nome = item.name.length > 28 ? item.name.substring(0, 26) + '..' : item.name;
                     itensHtml +=
-                        `<div class="receipt-item"><span>${nome}</span><span>${item.quantity}×${item.price.toFixed(2)}</span><span>${(item.price * item.quantity).toFixed(2)} MZN</span></div>`;
+                        `<div class="receipt-item"><span style="font-weight:900;">${nome}</span><span style="font-weight:900;">${item.quantity}×${item.price.toFixed(2)}</span><span style="font-weight:900;">${(item.price * item.quantity).toFixed(2)} MZN</span></div>`;
                 });
             }
 
@@ -1098,11 +1090,11 @@
             const box = document.getElementById('receiptBox');
 
             box.innerHTML = `
-                <div class="receipt-title">🦁 LIONS FASHION</div>
+                <div class="receipt-title" style="font-weight:900;">LIONS FASHION</div>
                 <div class="receipt-sub" style="font-weight:900;font-size:12pt;">Av. Julius Nyerere n°6600</div>
-                <div class="receipt-sub" style="margin-bottom:4px;">Maputo - Moçambique</div>
+                <div class="receipt-sub" style="margin-bottom:4px;font-weight:700;">Maputo - Moçambique</div>
                 <div class="receipt-line"></div>
-                <div class="receipt-info">
+                <div class="receipt-info" style="text-align:center;font-weight:900;">
                     <div><strong>FACTURA:</strong> ${sale.invoice}</div>
                     <div><strong>DATA:</strong> ${dataFormatada}</div>
                     <div><strong>ATENDENTE:</strong> ${sale.seller || 'Vendedor'}</div>
@@ -1110,15 +1102,16 @@
                 <div class="receipt-line"></div>
                 ${itensHtml}
                 <div class="receipt-line"></div>
-                <div class="receipt-total">TOTAL: ${sale.total.toFixed(2)} MZN</div>
-                <div class="receipt-payment">PAGAMENTO: ${metodoPagamentoStr}</div>
+                <div class="receipt-total" style="font-weight:900;">TOTAL: ${sale.total.toFixed(2)} MZN</div>
+                <div class="receipt-payment" style="font-weight:900;">PAGAMENTO: ${metodoPagamentoStr}</div>
                 ${sale.payment_method === 'Dinheiro MZN' ? `
-                <div class="receipt-payment">RECEBIDO: ${(sale.received || 0).toFixed(2)} MZN<br>TROCO: ${(sale.change || 0).toFixed(2)} MZN</div>
+                <div class="receipt-payment" style="font-weight:900;">RECEBIDO: ${(sale.received || 0).toFixed(2)} MZN</div>
+                <div class="receipt-payment" style="font-weight:900;">TROCO: ${(sale.change || 0).toFixed(2)} MZN</div>
                 ` : ''}
                 <div class="receipt-line-dash"></div>
-                <div class="receipt-footer">OBRIGADO PELA PREFERÊNCIA!<br>VOLTE SEMPRE! 🦁</div>
+                <div class="receipt-footer" style="font-weight:900;">OBRIGADO PELA PREFERÊNCIA!<br>VOLTE SEMPRE!</div>
                 <div class="receipt-line"></div>
-                <div class="receipt-small">Sistema LIONS FASHION</div>
+                <div class="receipt-small" style="font-weight:700;">Sistema LIONS FASHION</div>
                 <div class="receipt-actions">
                     <button class="btn-print" onclick="reimprimirRecibo()"><i class="fas fa-print"></i> Reimprimir</button>
                     <button class="btn-close" onclick="fecharReciboModal()"><i class="fas fa-times"></i> Fechar</button>
@@ -1144,17 +1137,17 @@
                         <title>Recibo LIONS FASHION</title>
                         <style>
                             @page { size: 80mm auto; margin: 2mm; }
-                            body { font-family: 'Courier New', monospace; margin: 0; padding: 4px; font-size: 12pt; font-weight: 700; text-align: center; color: #000; background: #fff; line-height: 1.4; }
+                            body { font-family: 'Courier New', monospace; margin: 0; padding: 4px; font-size: 12pt; font-weight: 900; text-align: center; color: #000; background: #fff; line-height: 1.4; }
                             .receipt-title { font-size: 18pt; font-weight: 900; text-align: center; letter-spacing: -0.5px; }
                             .receipt-sub { font-size: 10pt; text-align: center; color: #555; font-weight: 500; }
                             .receipt-line { border-top: 2px solid #000; margin: 6px 0; }
                             .receipt-line-dash { border-top: 1px dashed #000; margin: 6px 0; }
-                            .receipt-info { font-size: 11pt; font-weight: 600; line-height: 1.6; }
-                            .receipt-item { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #eee; font-size: 12pt; font-weight: 700; }
+                            .receipt-info { font-size: 11pt; font-weight: 900; line-height: 1.6; text-align: center; }
+                            .receipt-item { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #eee; font-size: 12pt; font-weight: 900; }
                             .receipt-total { font-size: 16pt; font-weight: 900; text-align: center; padding: 4px 0; }
-                            .receipt-payment { font-size: 12pt; font-weight: 700; text-align: center; padding: 2px 0; }
+                            .receipt-payment { font-size: 12pt; font-weight: 900; text-align: center; padding: 2px 0; }
                             .receipt-footer { font-size: 14pt; font-weight: 900; text-align: center; padding: 6px 0; }
-                            .receipt-small { font-size: 8pt; color: #888; font-weight: 400; text-align: center; }
+                            .receipt-small { font-size: 8pt; color: #888; font-weight: 700; text-align: center; }
                             .receipt-actions { display: none; }
                             @media print { body { margin: 0; padding: 0; } .receipt-actions { display: none !important; } }
                         </style>
@@ -1560,7 +1553,7 @@
                     <style>body{font-family:Arial;padding:20px;}table{width:100%;border-collapse:collapse;}th{background:#f0f0f0;padding:8px 10px;border:1px solid #ddd;text-align:left;}td{padding:6px 10px;border:1px solid #ddd;font-size:10pt;}.total{background:#fff8e6;font-weight:bold;}
                     .header{text-align:center;border-bottom:2px solid #e67e22;padding-bottom:15px;margin-bottom:20px;}.summary{display:flex;gap:20px;margin-bottom:20px;}.summary-item{background:#f7f7f7;padding:12px 20px;border-radius:8px;flex:1;text-align:center;}.summary-item .num{font-size:18pt;font-weight:800;}.summary-item .label{color:#888;font-size:10pt;}</style>
                     </head><body>
-                    <div class="header"><h1>🦁 LIONS FASHION</h1><p>Relatório de Vendas Mensais</p></div>
+                    <div class="header"><h1>LIONS FASHION</h1><p>Relatório de Vendas Mensais</p></div>
                     <div class="summary">
                         <div class="summary-item"><div class="num">${totalRevenue.toFixed(2)} MZN</div><div class="label">Receita Total</div></div>
                         <div class="summary-item"><div class="num">${totalProfit.toFixed(2)} MZN</div><div class="label">Lucro Total</div></div>
