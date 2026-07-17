@@ -107,7 +107,6 @@
             transition: all 0.4s ease;
         }
 
-        /* ===== TEMA ===== */
         .theme-toggle-btn {
             position: fixed;
             bottom: 80px;
@@ -207,7 +206,6 @@
             }
         }
 
-        /* ===== LOGIN ===== */
         .login-container {
             position: fixed;
             top: 0;
@@ -312,7 +310,6 @@
             background: var(--bg-color);
         }
 
-        /* ===== TOP BAR ===== */
         .top-bar {
             background: var(--topbar-bg);
             position: fixed;
@@ -384,7 +381,6 @@
             font-weight: 500;
         }
 
-        /* ===== SIDEBAR ===== */
         .sidebar {
             width: 280px;
             background: var(--sidebar-bg);
@@ -467,7 +463,6 @@
             transition: all 0.4s ease;
         }
 
-        /* ===== STATS ===== */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -522,7 +517,6 @@
             color: var(--success);
         }
 
-        /* ===== TABELAS ===== */
         .sales-management-table {
             background: var(--card-color);
             border-radius: var(--radius);
@@ -600,7 +594,6 @@
             font-weight: 700;
         }
 
-        /* ===== PRODUTOS ===== */
         .products-grid-amazon {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -684,7 +677,6 @@
             box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
         }
 
-        /* ===== CARRINHO ===== */
         .cart-item {
             background: var(--card-color);
             padding: 12px 14px;
@@ -780,7 +772,6 @@
             box-shadow: 0 4px 16px rgba(37, 211, 102, 0.3);
         }
 
-        /* ===== MODAL ===== */
         .modal {
             position: fixed;
             top: 0;
@@ -844,7 +835,6 @@
             background: var(--bg-color);
         }
 
-        /* ===== TOAST ===== */
         .toast {
             position: fixed;
             bottom: 30px;
@@ -1103,6 +1093,58 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
+        /* === NOVOS ESTILOS PARA O GRÁFICO MENSAL === */
+        .monthly-chart-container {
+            background: var(--card-color);
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .monthly-chart-container .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .monthly-chart-container .chart-header h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        .monthly-chart-container .chart-header .chart-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .monthly-chart-container canvas {
+            max-height: 300px;
+            max-width: 100%;
+        }
+
+        .month-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10pt;
+            font-weight: 600;
+        }
+        .month-status.open {
+            background: var(--success);
+            color: white;
+        }
+        .month-status.closed {
+            background: var(--danger);
+            color: white;
+        }
+
         @media (max-width: 1024px) {
             .pos-interface {
                 grid-template-columns: 1fr;
@@ -1300,6 +1342,23 @@
         </div>
     </div>
 
+    <!-- ===== MODAL FECHO DO MÊS ===== -->
+    <div id="fechoMesModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 16px; font-size:1.3rem;"><i class="fas fa-calendar-check" style="color:var(--primary-color);"></i> Fecho do Mês</h3>
+            <p style="margin-bottom: 12px; color: var(--text-light); font-size:13pt;">Selecione o mês para fechar:</p>
+            <div class="form-group">
+                <label>Mês/Ano</label>
+                <input type="month" id="fechoMesInput" style="font-size:14pt;">
+            </div>
+            <div id="fechoMesInfo" style="margin: 12px 0; padding: 12px; background: var(--bg-color); border-radius: 8px; display: none;"></div>
+            <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button class="btn btn-danger" style="flex:1;" onclick="fecharModalFechoMes()">Cancelar</button>
+                <button class="btn btn-success" style="flex:1;" onclick="confirmarFechoMes()"><i class="fas fa-check"></i> Fechar Mês</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ============================================================
         // 1. TEMA
@@ -1332,10 +1391,12 @@
         let products = [];
         let sales = [];
         let users = [];
+        let monthlySalesData = [];
         let dataLoaded = false;
         let selectedPaymentMethod = "Dinheiro MZN";
         let barcodeBuffer = "";
         let barcodeTimeout = null;
+        let monthlyChartInstance = null;
         const CATEGORIAS = ["Calçado", "Vestuário", "Bolsa", "Pasta"];
 
         const categoryEmojis = {
@@ -1357,14 +1418,16 @@
         // ============================================================
         async function loadAllData() {
             try {
-                const [produtosRes, vendasRes, usuariosRes] = await Promise.all([
+                const [produtosRes, vendasRes, usuariosRes, monthlyRes] = await Promise.all([
                     supabaseClient.from('products').select('*'),
                     supabaseClient.from('sales').select('*').order('date', { ascending: false }),
-                    supabaseClient.from('users').select('*')
+                    supabaseClient.from('users').select('*'),
+                    supabaseClient.from('monthly_sales').select('*').order('month_year', { ascending: true })
                 ]);
                 if (produtosRes.data) products = produtosRes.data;
                 if (vendasRes.data) sales = vendasRes.data;
                 if (usuariosRes.data) users = usuariosRes.data;
+                if (monthlyRes.data) monthlySalesData = monthlyRes.data;
                 dataLoaded = true;
                 document.getElementById('onlineStatus').textContent = 'Online';
                 if (currentUser && document.getElementById('pageTitle')?.innerText.includes('Dashboard')) showDashboard();
@@ -1398,7 +1461,69 @@
         }
 
         // ============================================================
-        // 4. LOGIN
+        // 4. ACUMULAR VENDA MENSAL
+        // ============================================================
+        async function acumularVendaMensal(venda) {
+            const data = new Date(venda.date);
+            const monthYear = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+
+            const { data: existing, error: fetchError } = await supabaseClient
+                .from('monthly_sales')
+                .select('*')
+                .eq('month_year', monthYear)
+                .single();
+
+            if (fetchError && fetchError.code !== 'PGRST116') {
+                console.error('Erro ao buscar monthly_sales:', fetchError);
+                return;
+            }
+
+            let items = venda.items;
+            if (typeof items === 'string') {
+                try { items = JSON.parse(items); } catch (e) { items = []; }
+            }
+            const totalItems = items.reduce((sum, i) => sum + (i.quantity || 0), 0);
+
+            if (existing) {
+                if (existing.closed) {
+                    showToast('⚠️ Este mês já está fechado! Não é possível adicionar vendas.', 'warning');
+                    return;
+                }
+                const { error: updateError } = await supabaseClient
+                    .from('monthly_sales')
+                    .update({
+                        total_sales: existing.total_sales + (venda.total || 0),
+                        total_profit: existing.total_profit + (venda.profit || 0),
+                        total_items: existing.total_items + totalItems,
+                        sales_count: existing.sales_count + 1
+                    })
+                    .eq('id', existing.id);
+
+                if (updateError) console.error('Erro ao atualizar monthly_sales:', updateError);
+            } else {
+                const { error: insertError } = await supabaseClient
+                    .from('monthly_sales')
+                    .insert([{
+                        month_year: monthYear,
+                        total_sales: venda.total || 0,
+                        total_profit: venda.profit || 0,
+                        total_items: totalItems,
+                        sales_count: 1,
+                        closed: false
+                    }]);
+
+                if (insertError) console.error('Erro ao inserir monthly_sales:', insertError);
+            }
+
+            const { data: newMonthly } = await supabaseClient
+                .from('monthly_sales')
+                .select('*')
+                .order('month_year', { ascending: true });
+            if (newMonthly) monthlySalesData = newMonthly;
+        }
+
+        // ============================================================
+        // 5. LOGIN
         // ============================================================
         window.processLogin = function() {
             if (!dataLoaded) { showToast('Aguardando dados...', 'warning'); return; }
@@ -1444,7 +1569,7 @@
         };
 
         // ============================================================
-        // 5. NAVEGAÇÃO
+        // 6. NAVEGAÇÃO
         // ============================================================
         window.navigateTo = function(view) {
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
@@ -1490,7 +1615,7 @@
         };
 
         // ============================================================
-        // 6. DASHBOARD
+        // 7. DASHBOARD
         // ============================================================
         function showDashboard() {
             const totalSales = sales.length;
@@ -1502,16 +1627,17 @@
             const vendasHojeTotal = vendasHoje.reduce((sum, s) => sum + (s.total || 0), 0);
             const lucroHoje = vendasHoje.reduce((sum, s) => sum + (s.profit || 0), 0);
 
-            const monthlySales = {};
-            sales.forEach(sale => {
-                const date = new Date(sale.date);
-                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                if (!monthlySales[key]) monthlySales[key] = { total: 0, profit: 0, count: 0 };
-                monthlySales[key].total += sale.total || 0;
-                monthlySales[key].profit += sale.profit || 0;
-                monthlySales[key].count += 1;
-            });
-            const monthlyData = Object.entries(monthlySales).sort((a, b) => a[0].localeCompare(b[0]));
+            const monthlyData = monthlySalesData.map(m => ({
+                month: m.month_year,
+                total: m.total_sales || 0,
+                profit: m.total_profit || 0,
+                count: m.sales_count || 0,
+                closed: m.closed || false
+            }));
+
+            const now = new Date();
+            const mesAtual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const dadosMesAtual = monthlyData.find(m => m.month === mesAtual);
 
             const productSales = {};
             sales.forEach(sale => {
@@ -1523,10 +1649,6 @@
                 });
             });
             const topProducts = Object.entries(productSales).sort((a, b) => b[1] - a[1]).slice(0, 5);
-
-            const now = new Date();
-            const mesAtual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            const dadosMesAtual = monthlyData.find(([key]) => key === mesAtual);
 
             document.getElementById('mainContent').innerHTML = `
                     <div class="stats-grid">
@@ -1566,105 +1688,89 @@
                         ${dadosMesAtual ? `
                         <div class="stat-card">
                             <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
-                            <div class="value">${dadosMesAtual[1].total.toFixed(2)} MZN</div>
-                            <div class="label">Vendas do Mês</div>
+                            <div class="value">${dadosMesAtual.total.toFixed(2)} MZN</div>
+                            <div class="label">Vendas do Mês ${dadosMesAtual.closed ? '🔒' : '📅'}</div>
                         </div>
                         <div class="stat-card profit-card">
                             <div class="stat-icon"><i class="fas fa-trophy"></i></div>
-                            <div class="value">${dadosMesAtual[1].profit.toFixed(2)} MZN</div>
-                            <div class="label">Lucro do Mês</div>
+                            <div class="value">${dadosMesAtual.profit.toFixed(2)} MZN</div>
+                            <div class="label">Lucro do Mês ${dadosMesAtual.closed ? '🔒' : '📅'}</div>
                         </div>
                         ` : ''}
                     </div>
-                    
-                    <div class="monthly-report">
-                        <div class="report-header">
-                            <h3><i class="fas fa-file-alt"></i> 📊 Relatório Mensal de Vendas</h3>
-                            <div class="report-actions">
-                                <button class="btn btn-primary" onclick="gerarRelatorioMensal()" style="padding:8px 18px;font-size:11pt;">
-                                    <i class="fas fa-download"></i> Baixar Relatório
+
+                    <div class="monthly-chart-container">
+                        <div class="chart-header">
+                            <h3><i class="fas fa-chart-bar" style="color:var(--primary-color);"></i> 📊 Vendas Mensais Acumuladas</h3>
+                            <div class="chart-actions">
+                                <button class="btn btn-primary" onclick="abrirFechoMes()" style="padding:8px 18px;font-size:11pt;">
+                                    <i class="fas fa-lock"></i> Fechar Mês
                                 </button>
-                                <button class="btn btn-success" onclick="gerarRelatorioDia()" style="padding:8px 18px;font-size:11pt;">
-                                    <i class="fas fa-file-pdf"></i> Relatório do Dia
-                                </button>
-                                <button class="btn btn-whatsapp" onclick="compartilharWhatsApp()" style="padding:8px 18px;font-size:11pt;">
-                                    <i class="fab fa-whatsapp"></i> Compartilhar
+                                <button class="btn btn-success" onclick="gerarRelatorioMensalCompleto()" style="padding:8px 18px;font-size:11pt;">
+                                    <i class="fas fa-print"></i> Imprimir Relatório
                                 </button>
                             </div>
                         </div>
-                        
-                        <div class="report-summary">
-                            <div class="summary-item revenue">
-                                <div class="number">${monthlyData.reduce((sum, [_, d]) => sum + d.total, 0).toFixed(2)} MZN</div>
-                                <div class="label">Receita Total</div>
-                            </div>
-                            <div class="summary-item profit">
-                                <div class="number">${monthlyData.reduce((sum, [_, d]) => sum + d.profit, 0).toFixed(2)} MZN</div>
-                                <div class="label">Lucro Total</div>
-                            </div>
-                            <div class="summary-item">
-                                <div class="number">${monthlyData.reduce((sum, [_, d]) => sum + d.count, 0)}</div>
-                                <div class="label">Total de Vendas</div>
-                            </div>
-                            <div class="summary-item">
-                                <div class="number">${monthlyData.length}</div>
-                                <div class="label">Meses com Vendas</div>
-                            </div>
-                        </div>
-                        
-                        <div class="sales-management-table">
-                            <div class="table-header">
-                                <h3>📋 Vendas por Mês</h3>
-                                <span class="total-badge">
-                                    ${monthlyData.reduce((sum, [_, d]) => sum + d.total, 0).toFixed(2)} MZN
-                                </span>
-                            </div>
-                            <div class="table-container">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Mês</th>
-                                            <th style="text-align:center;">Vendas</th>
-                                            <th style="text-align:right;">Total (MZN)</th>
-                                            <th style="text-align:right;">Lucro (MZN)</th>
-                                            <th style="text-align:right;">Margem</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${monthlyData.length > 0 ? monthlyData.map(([mes, dados]) => {
-                                            const margin = dados.total > 0 ? (dados.profit / dados.total * 100) : 0;
-                                            const isCurrentMonth = mes === mesAtual;
-                                            return `
-                                                <tr style="${isCurrentMonth ? 'border-left: 3px solid var(--primary-color);' : ''}">
-                                                    <td style="font-weight:700;">${mes} ${isCurrentMonth ? '⭐' : ''}</td>
-                                                    <td style="text-align:center;">${dados.count}</td>
-                                                    <td style="text-align:right;" class="total-cell">${dados.total.toFixed(2)}</td>
-                                                    <td style="text-align:right;" class="profit-cell">${dados.profit.toFixed(2)}</td>
-                                                    <td style="text-align:right;">${margin.toFixed(1)}%</td>
-                                                </tr>
-                                            `;
-                                        }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:30px;">Sem vendas registadas</td></tr>'}
-                                        ${monthlyData.length > 0 ? `
-                                            <tr class="month-total">
-                                                <td><strong>TOTAL GERAL</strong></td>
-                                                <td style="text-align:center;"><strong>${monthlyData.reduce((sum, [_, d]) => sum + d.count, 0)}</strong></td>
-                                                <td style="text-align:right;"><strong>${monthlyData.reduce((sum, [_, d]) => sum + d.total, 0).toFixed(2)} MZN</strong></td>
-                                                <td style="text-align:right;"><strong>${monthlyData.reduce((sum, [_, d]) => sum + d.profit, 0).toFixed(2)} MZN</strong></td>
-                                                <td style="text-align:right;">
-                                                    <strong>${(monthlyData.reduce((sum, [_, d]) => sum + d.profit, 0) / monthlyData.reduce((sum, [_, d]) => sum + d.total, 0) * 100).toFixed(1)}%</strong>
-                                                </td>
-                                            </tr>
-                                        ` : ''}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        
-                        <div class="report-chart">
-                            <canvas id="monthlyChart"></canvas>
+                        <canvas id="monthlyChart"></canvas>
+                        <div style="margin-top:12px; display:flex; gap:16px; flex-wrap:wrap; justify-content:center; font-size:11pt; color:var(--text-light);">
+                            <span><span style="display:inline-block;width:12px;height:12px;background:var(--primary-color);border-radius:3px;"></span> Receita</span>
+                            <span><span style="display:inline-block;width:12px;height:12px;background:var(--success);border-radius:3px;"></span> Lucro</span>
+                            <span><span style="display:inline-block;width:12px;height:12px;background:var(--danger);border-radius:3px;"></span> Mês Fechado</span>
                         </div>
                     </div>
-                    
+
+                    <div class="sales-management-table">
+                        <div class="table-header">
+                            <h3>📋 Resumo Mensal</h3>
+                            <span class="total-badge">
+                                ${monthlyData.reduce((sum, m) => sum + m.total, 0).toFixed(2)} MZN
+                            </span>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Mês/Ano</th>
+                                        <th style="text-align:center;">Vendas</th>
+                                        <th style="text-align:right;">Total (MZN)</th>
+                                        <th style="text-align:right;">Lucro (MZN)</th>
+                                        <th style="text-align:right;">Items</th>
+                                        <th style="text-align:center;">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${monthlyData.length > 0 ? monthlyData.map(m => {
+                                        const isCurrentMonth = m.month === mesAtual;
+                                        return `
+                                            <tr style="${isCurrentMonth ? 'border-left: 3px solid var(--primary-color);' : ''}">
+                                                <td style="font-weight:700;">${m.month} ${isCurrentMonth ? '⭐' : ''}</td>
+                                                <td style="text-align:center;">${m.count}</td>
+                                                <td style="text-align:right;" class="total-cell">${m.total.toFixed(2)}</td>
+                                                <td style="text-align:right;" class="profit-cell">${m.profit.toFixed(2)}</td>
+                                                <td style="text-align:right;">${m.total_items || 0}</td>
+                                                <td style="text-align:center;">
+                                                    <span class="month-status ${m.closed ? 'closed' : 'open'}">
+                                                        ${m.closed ? '🔒 Fechado' : '📅 Aberto'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--text-light);padding:30px;">Sem dados mensais</td></tr>'}
+                                    ${monthlyData.length > 0 ? `
+                                        <tr class="month-total">
+                                            <td><strong>TOTAL GERAL</strong></td>
+                                            <td style="text-align:center;"><strong>${monthlyData.reduce((sum, m) => sum + m.count, 0)}</strong></td>
+                                            <td style="text-align:right;"><strong>${monthlyData.reduce((sum, m) => sum + m.total, 0).toFixed(2)} MZN</strong></td>
+                                            <td style="text-align:right;"><strong>${monthlyData.reduce((sum, m) => sum + m.profit, 0).toFixed(2)} MZN</strong></td>
+                                            <td style="text-align:right;"><strong>${monthlyData.reduce((sum, m) => sum + (m.total_items || 0), 0)}</strong></td>
+                                            <td style="text-align:center;"></td>
+                                        </tr>
+                                    ` : ''}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:20px;">
                         <div class="data-table">
                             <div class="table-header"><h3>🏆 Produtos Mais Vendidos</h3></div>
@@ -1686,36 +1792,64 @@
             setTimeout(() => {
                 const ctx = document.getElementById('monthlyChart');
                 if (ctx && monthlyData.length > 0) {
-                    new Chart(ctx, {
+                    if (monthlyChartInstance) monthlyChartInstance.destroy();
+
+                    const barColors = monthlyData.map(m => m.closed ? 'var(--danger)' : 'var(--primary-color)');
+                    const barColorsProfit = monthlyData.map(m => m.closed ? 'rgba(231,76,60,0.5)' :
+                    'var(--success)');
+
+                    monthlyChartInstance = new Chart(ctx, {
                         type: 'bar',
                         data: {
-                            labels: monthlyData.map(([mes]) => mes),
+                            labels: monthlyData.map(m => m.month),
                             datasets: [{
-                                label: 'Total (MZN)',
-                                data: monthlyData.map(([_, d]) => d.total),
-                                backgroundColor: 'var(--primary-color)',
-                                borderRadius: 6
+                                label: 'Receita (MZN)',
+                                data: monthlyData.map(m => m.total),
+                                backgroundColor: barColors,
+                                borderRadius: 6,
+                                borderColor: monthlyData.map(m => m.closed ? 'var(--danger)' :
+                                    'var(--primary-color)'),
+                                borderWidth: 2
                             }, {
                                 label: 'Lucro (MZN)',
-                                data: monthlyData.map(([_, d]) => d.profit),
-                                backgroundColor: 'var(--success)',
+                                data: monthlyData.map(m => m.profit),
+                                backgroundColor: barColorsProfit,
                                 borderRadius: 6
                             }]
                         },
                         options: {
                             responsive: true,
+                            maintainAspectRatio: true,
                             plugins: {
                                 legend: {
                                     labels: {
                                         color: 'var(--text-color)',
                                         font: { size: 12 }
                                     }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.dataset.label || '';
+                                            if (context.parsed.y !== undefined) {
+                                                label += `: ${context.parsed.y.toFixed(2)} MZN`;
+                                            }
+                                            const index = context.dataIndex;
+                                            const data = monthlyData[index];
+                                            if (data) {
+                                                label += ` (${data.count} vendas)`;
+                                                if (data.closed) label += ' 🔒';
+                                            }
+                                            return label;
+                                        }
+                                    }
                                 }
                             },
                             scales: {
                                 y: {
                                     beginAtZero: true,
-                                    ticks: { color: 'var(--text-light)' }
+                                    ticks: { color: 'var(--text-light)', callback: function(value) { return value
+                                            .toFixed(0) + ' MZN'; } }
                                 },
                                 x: {
                                     ticks: { color: 'var(--text-light)' }
@@ -1723,52 +1857,130 @@
                             }
                         }
                     });
+                } else if (ctx) {
+                    ctx.innerHTML = '<p style="text-align:center;color:var(--text-light);padding:40px;">Sem dados para exibir</p>';
                 }
-            }, 200);
+            }, 300);
         }
 
         // ============================================================
-        // 7. COMPARTILHAR WHATSAPP
+        // 8. FECHO DO MÊS
         // ============================================================
-        function compartilharWhatsApp() {
-            const hoje = new Date();
-            const totalVendas = sales.length;
-            const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0);
-            const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0);
+        function abrirFechoMes() {
+            if (currentUser?.role !== 'admin') {
+                showToast('Apenas administradores podem fechar o mês!', 'warning');
+                return;
+            }
+            const now = new Date();
+            const mesAtual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            document.getElementById('fechoMesInput').value = mesAtual;
+            document.getElementById('fechoMesInput').max = mesAtual;
+            document.getElementById('fechoMesInfo').style.display = 'none';
+            document.getElementById('fechoMesModal').style.display = 'flex';
 
-            const mensagem = `🦁 *LIONS FASHION - Relatório de Vendas*
-        📅 Data: ${hoje.toLocaleDateString('pt-MZ')}
-        📊 Total de Vendas: ${totalVendas}
-        💰 Receita Total: ${totalRevenue.toFixed(2)} MZN
-        📈 Lucro Total: ${totalProfit.toFixed(2)} MZN
-
-        📍 Av. Julius Nyerere n°6600 • Maputo - Moçambique
-        `;
-
-            const url = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
-            window.open(url, '_blank');
-            showToast('📱 WhatsApp aberto para compartilhar!', 'success');
+            document.getElementById('fechoMesInput').addEventListener('change', function() {
+                const mesSelecionado = this.value;
+                const dados = monthlySalesData.find(m => m.month_year === mesSelecionado);
+                const infoDiv = document.getElementById('fechoMesInfo');
+                if (dados) {
+                    infoDiv.style.display = 'block';
+                    infoDiv.innerHTML = `
+                            <p><strong>📊 ${dados.month_year}</strong></p>
+                            <p>Vendas: ${dados.sales_count}</p>
+                            <p>Receita: ${dados.total_sales.toFixed(2)} MZN</p>
+                            <p>Lucro: ${dados.total_profit.toFixed(2)} MZN</p>
+                            <p>Status: ${dados.closed ? '🔒 FECHADO' : '📅 ABERTO'}</p>
+                            ${dados.closed ? '<p style="color:var(--danger);">⚠️ Este mês já está fechado!</p>' : ''}
+                        `;
+                } else {
+                    infoDiv.style.display = 'block';
+                    infoDiv.innerHTML = `
+                            <p style="color:var(--warning);">⚠️ Nenhum dado encontrado para este mês.</p>
+                            <p>O mês será fechado sem vendas.</p>
+                        `;
+                }
+            });
+            setTimeout(() => document.getElementById('fechoMesInput').dispatchEvent(new Event('change')), 100);
         }
 
-        // ============================================================
-        // 8. RELATÓRIO DO DIA
-        // ============================================================
-        function gerarRelatorioDia() {
-            const hoje = new Date();
-            const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-            const vendasHoje = sales.filter(s => new Date(s.date) >= inicioDia);
+        function fecharModalFechoMes() {
+            document.getElementById('fechoMesModal').style.display = 'none';
+        }
 
-            if (vendasHoje.length === 0) {
-                showToast('Não há vendas hoje!', 'warning');
+        async function confirmarFechoMes() {
+            const mesSelecionado = document.getElementById('fechoMesInput').value;
+            if (!mesSelecionado) {
+                showToast('Selecione um mês!', 'error');
                 return;
             }
 
-            const totalDia = vendasHoje.reduce((s, v) => s + v.total, 0);
-            const lucroDia = vendasHoje.reduce((s, v) => s + (v.profit || 0), 0);
+            const dados = monthlySalesData.find(m => m.month_year === mesSelecionado);
+            if (dados && dados.closed) {
+                showToast('Este mês já está fechado!', 'warning');
+                fecharModalFechoMes();
+                return;
+            }
+
+            if (!confirm(`⚠️ Tem certeza que deseja FECHAR o mês ${mesSelecionado}?\n\nEsta ação é IRREVERSÍVEL e irá:\n- Bloquear novas vendas neste mês\n- Gerar relatório final\n- Resetar o gráfico para o mês seguinte`)) {
+                return;
+            }
+
+            try {
+                if (dados) {
+                    const { error } = await supabaseClient
+                        .from('monthly_sales')
+                        .update({
+                            closed: true,
+                            closed_at: new Date().toISOString()
+                        })
+                        .eq('id', dados.id);
+
+                    if (error) throw error;
+                } else {
+                    const { error } = await supabaseClient
+                        .from('monthly_sales')
+                        .insert([{
+                            month_year: mesSelecionado,
+                            total_sales: 0,
+                            total_profit: 0,
+                            total_items: 0,
+                            sales_count: 0,
+                            closed: true,
+                            closed_at: new Date().toISOString()
+                        }]);
+                    if (error) throw error;
+                }
+
+                await loadAllData();
+                gerarRelatorioMesFechado(mesSelecionado);
+                fecharModalFechoMes();
+                showToast(`✅ Mês ${mesSelecionado} fechado com sucesso!`, 'success');
+                notificarGerente('📅 Fecho do Mês', `${mesSelecionado} foi fechado por ${currentUser.name}`);
+                showDashboard();
+
+            } catch (error) {
+                console.error('Erro ao fechar mês:', error);
+                showToast('❌ Erro ao fechar o mês!', 'error');
+            }
+        }
+
+        // ============================================================
+        // 9. RELATÓRIO DO MÊS FECHADO
+        // ============================================================
+        function gerarRelatorioMesFechado(monthYear) {
+            const vendasDoMes = sales.filter(s => {
+                const data = new Date(s.date);
+                const mes = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+                return mes === monthYear;
+            });
+
+            const totalVendas = vendasDoMes.length;
+            const totalReceita = vendasDoMes.reduce((sum, s) => sum + (s.total || 0), 0);
+            const totalLucro = vendasDoMes.reduce((sum, s) => sum + (s.profit || 0), 0);
 
             let produtosStr = '';
             const produtosVendidos = {};
-            vendasHoje.forEach(venda => {
+            vendasDoMes.forEach(venda => {
                 let items = venda.items;
                 if (typeof items === 'string') { try { items = JSON.parse(items); } catch (e) { items = []; } }
                 if (items && Array.isArray(items)) {
@@ -1786,71 +1998,83 @@
             for (const [nome, dados] of Object.entries(produtosVendidos)) {
                 produtosStr += `
                         <tr>
-                            <td style="padding:8px 14px;border:1px solid #ddd;font-weight:600;">${nome}</td>
-                            <td style="padding:8px 14px;border:1px solid #ddd;text-align:center;font-weight:700;">${dados.qty}</td>
-                            <td style="padding:8px 14px;border:1px solid #ddd;text-align:right;font-weight:700;color:#e67e22;">${dados.total.toFixed(2)} MZN</td>
-                            <td style="padding:8px 14px;border:1px solid #ddd;text-align:right;font-weight:700;color:#00a859;">${dados.profit.toFixed(2)} MZN</td>
+                            <td style="padding:6px 12px;border:1px solid #ddd;">${nome}</td>
+                            <td style="padding:6px 12px;border:1px solid #ddd;text-align:center;">${dados.qty}</td>
+                            <td style="padding:6px 12px;border:1px solid #ddd;text-align:right;">${dados.total.toFixed(2)} MZN</td>
+                            <td style="padding:6px 12px;border:1px solid #ddd;text-align:right;">${dados.profit.toFixed(2)} MZN</td>
                         </tr>
                     `;
             }
 
+            const now = new Date();
+            const [ano, mes] = monthYear.split('-');
+            const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+            ];
+            const nomeMes = meses[parseInt(mes) - 1];
+
             const html = `
                     <html>
                     <head>
-                        <title>Relatório do Dia - LIONS FASHION</title>
+                        <title>Relatório de Fecho - ${nomeMes} ${ano}</title>
                         <style>
                             body { font-family: Arial, sans-serif; padding: 30px; color: #111; }
                             .header { text-align: center; border-bottom: 3px solid #e67e22; padding-bottom: 20px; margin-bottom: 25px; }
-                            .header h1 { color: #131921; font-size: 28pt; margin: 0; font-weight: 900; }
+                            .header h1 { color: #131921; font-size: 24pt; margin: 0; }
                             .header h1 span { color: #e67e22; }
-                            .header p { color: #565959; font-size: 12pt; }
-                            .header .address { color: #888; font-size: 10pt; margin-top: 4px; }
+                            .header .subtitle { font-size: 18pt; font-weight: 800; color: #e67e22; }
+                            .header .address { color: #888; font-size: 10pt; }
                             .summary { display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap; }
                             .summary-item { background: #f7f7f7; padding: 16px 25px; border-radius: 8px; flex: 1; min-width: 150px; text-align: center; }
-                            .summary-item .number { font-size: 22pt; font-weight: 800; }
+                            .summary-item .number { font-size: 20pt; font-weight: 800; }
                             .summary-item .label { color: #565959; font-size: 11pt; }
                             .summary-item.revenue .number { color: #e67e22; }
                             .summary-item.profit .number { color: #00a859; }
+                            .summary-item.closed .number { color: #e74c3c; }
                             table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-                            th { background: #f7f7f7; padding: 10px 14px; border: 1px solid #ddd; text-align: left; font-weight: 700; font-size: 12pt; }
-                            td { padding: 8px 14px; border: 1px solid #ddd; font-size: 11.5pt; }
+                            th { background: #f7f7f7; padding: 8px 12px; border: 1px solid #ddd; text-align: left; font-weight: 700; }
+                            td { padding: 6px 12px; border: 1px solid #ddd; font-size: 11pt; }
                             .total-row { background: #fff8e6; font-weight: bold; }
-                            .footer { text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid #ddd; color: #565959; font-size: 11pt; }
+                            .footer { text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid #ddd; color: #565959; font-size: 10pt; }
                             .footer .brand { color: #e67e22; font-weight: bold; }
-                            .produto-table { margin-top: 20px; }
-                            .produto-table th { background: #e67e22; color: white; }
+                            .closed-badge { display: inline-block; background: #e74c3c; color: white; padding: 2px 16px; border-radius: 20px; font-size: 10pt; font-weight: 700; }
                             @media print { body { padding: 15px; } }
                         </style>
                     </head>
                     <body>
                         <div class="header">
                             <h1>🦁 LIONS <span>FASHION</span></h1>
-                            <p style="font-size:16pt;font-weight:800;">RELATÓRIO DO DIA</p>
-                            <p style="font-size:14pt;font-weight:700;">${hoje.toLocaleDateString('pt-MZ', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                            <div class="subtitle">📅 RELATÓRIO DE FECHO</div>
+                            <p style="font-size:14pt;font-weight:700;">${nomeMes} / ${ano}</p>
                             <div class="address">Av. Julius Nyerere n°6600 • Maputo - Moçambique</div>
+                            <div style="margin-top:8px;"><span class="closed-badge">🔒 MÊS FECHADO</span></div>
                         </div>
                         
                         <div class="summary">
                             <div class="summary-item revenue">
-                                <div class="number">${totalDia.toFixed(2)} MZN</div>
-                                <div class="label">Receita do Dia</div>
+                                <div class="number">${totalReceita.toFixed(2)} MZN</div>
+                                <div class="label">Receita Total</div>
                             </div>
                             <div class="summary-item profit">
-                                <div class="number">${lucroDia.toFixed(2)} MZN</div>
-                                <div class="label">Lucro do Dia</div>
+                                <div class="number">${totalLucro.toFixed(2)} MZN</div>
+                                <div class="label">Lucro Total</div>
                             </div>
                             <div class="summary-item">
-                                <div class="number">${vendasHoje.length}</div>
+                                <div class="number">${totalVendas}</div>
                                 <div class="label">Total de Vendas</div>
                             </div>
                             <div class="summary-item">
                                 <div class="number">${Object.keys(produtosVendidos).length}</div>
                                 <div class="label">Produtos Vendidos</div>
                             </div>
+                            <div class="summary-item closed">
+                                <div class="number">🔒</div>
+                                <div class="label">Fechado em ${new Date().toLocaleDateString('pt-MZ')}</div>
+                            </div>
                         </div>
                         
-                        <h3 style="margin-top:20px;font-size:14pt;">📦 Produtos Vendidos Hoje</h3>
-                        <table class="produto-table">
+                        <h3 style="margin-top:20px;">📦 Produtos Vendidos</h3>
+                        <table>
                             <thead>
                                 <tr>
                                     <th>Produto</th>
@@ -1860,19 +2084,27 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                ${produtosStr}
+                                ${produtosStr || '<tr><td colspan="4" style="text-align:center;color:#888;">Nenhum produto vendido</td></tr>'}
                                 <tr class="total-row">
                                     <td><strong>TOTAL</strong></td>
                                     <td style="text-align:center;"><strong>${Object.values(produtosVendidos).reduce((s, d) => s + d.qty, 0)}</strong></td>
-                                    <td style="text-align:right;"><strong>${totalDia.toFixed(2)} MZN</strong></td>
-                                    <td style="text-align:right;"><strong>${lucroDia.toFixed(2)} MZN</strong></td>
+                                    <td style="text-align:right;"><strong>${totalReceita.toFixed(2)} MZN</strong></td>
+                                    <td style="text-align:right;"><strong>${totalLucro.toFixed(2)} MZN</strong></td>
                                 </tr>
                             </tbody>
                         </table>
                         
+                        <div style="margin-top:20px; padding:12px; background:#f7f7f7; border-radius:8px; text-align:center;">
+                            <p style="font-size:11pt; color:#555;">
+                                <strong>Este relatório confirma o fecho do mês ${nomeMes} ${ano}.</strong><br>
+                                Nenhuma nova venda poderá ser registada para este período.
+                            </p>
+                        </div>
+                        
                         <div class="footer">
                             <p><span class="brand">LIONS FASHION</span> • Corporate Suite</p>
-                            <p style="font-size:9pt;">Relatório gerado automaticamente em ${new Date().toLocaleString('pt-MZ')}</p>
+                            <p style="font-size:9pt;">Relatório de fecho gerado em ${new Date().toLocaleString('pt-MZ')}</p>
+                            <p style="font-size:9pt;color:#aaa;">Assinado: ${currentUser?.name || 'Sistema'}</p>
                         </div>
                         
                         <script>
@@ -1893,48 +2125,37 @@
         }
 
         // ============================================================
-        // 9. RELATÓRIO MENSAL
+        // 10. RELATÓRIO MENSAL COMPLETO
         // ============================================================
-        function gerarRelatorioMensal() {
-            if (sales.length === 0) {
-                showToast('Sem dados para gerar relatório!', 'warning');
+        function gerarRelatorioMensalCompleto() {
+            if (monthlySalesData.length === 0) {
+                showToast('Sem dados mensais para gerar relatório!', 'warning');
                 return;
             }
 
-            const monthlySales = {};
-            sales.forEach(sale => {
-                const date = new Date(sale.date);
-                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                if (!monthlySales[key]) monthlySales[key] = { total: 0, profit: 0, count: 0 };
-                monthlySales[key].total += sale.total || 0;
-                monthlySales[key].profit += sale.profit || 0;
-                monthlySales[key].count += 1;
-            });
+            const totalRevenue = monthlySalesData.reduce((sum, m) => sum + m.total_sales, 0);
+            const totalProfit = monthlySalesData.reduce((sum, m) => sum + m.total_profit, 0);
+            const totalSales = monthlySalesData.reduce((sum, m) => sum + m.sales_count, 0);
+            const totalItems = monthlySalesData.reduce((sum, m) => sum + (m.total_items || 0), 0);
+            const mesesFechados = monthlySalesData.filter(m => m.closed).length;
 
-            const monthlyData = Object.entries(monthlySales).sort((a, b) => a[0].localeCompare(b[0]));
-            const totalRevenue = monthlyData.reduce((sum, [_, d]) => sum + d.total, 0);
-            const totalProfit = monthlyData.reduce((sum, [_, d]) => sum + d.profit, 0);
-            const totalSales = monthlyData.reduce((sum, [_, d]) => sum + d.count, 0);
-
-            const dataAtual = new Date().toLocaleDateString('pt-MZ', {
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric'
-            });
-
-            let tableRows = monthlyData.map(([mes, d]) => {
-                const margin = d.total > 0 ? (d.profit / d.total * 100) : 0;
+            let tableRows = monthlySalesData.map(m => {
+                const margin = m.total_sales > 0 ? (m.total_profit / m.total_sales * 100) : 0;
                 return `
                         <tr>
-                            <td style="padding:8px 14px;border:1px solid #ddd;font-weight:700;">${mes}</td>
-                            <td style="padding:8px 14px;border:1px solid #ddd;text-align:center;font-weight:700;">${d.count}</td>
-                            <td style="padding:8px 14px;border:1px solid #ddd;text-align:right;font-weight:700;color:#e67e22;">${d.total.toFixed(2)} MZN</td>
-                            <td style="padding:8px 14px;border:1px solid #ddd;text-align:right;font-weight:700;color:#00a859;">${d.profit.toFixed(2)} MZN</td>
-                            <td style="padding:8px 14px;border:1px solid #ddd;text-align:right;font-weight:700;">${margin.toFixed(1)}%</td>
+                            <td style="padding:6px 12px;border:1px solid #ddd;font-weight:700;">${m.month_year}</td>
+                            <td style="padding:6px 12px;border:1px solid #ddd;text-align:center;">${m.sales_count}</td>
+                            <td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#e67e22;">${m.total_sales.toFixed(2)} MZN</td>
+                            <td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#00a859;">${m.total_profit.toFixed(2)} MZN</td>
+                            <td style="padding:6px 12px;border:1px solid #ddd;text-align:right;">${m.total_items || 0}</td>
+                            <td style="padding:6px 12px;border:1px solid #ddd;text-align:center;">
+                                ${m.closed ? '🔒 Fechado' : '📅 Aberto'}
+                            </td>
                         </tr>
                     `;
             }).join('');
 
+            const now = new Date();
             const html = `
                     <html>
                     <head>
@@ -1942,21 +2163,22 @@
                         <style>
                             body { font-family: Arial, sans-serif; padding: 30px; color: #111; }
                             .header { text-align: center; border-bottom: 3px solid #e67e22; padding-bottom: 20px; margin-bottom: 25px; }
-                            .header h1 { color: #131921; font-size: 28pt; margin: 0; font-weight: 900; }
+                            .header h1 { color: #131921; font-size: 24pt; margin: 0; }
                             .header h1 span { color: #e67e22; }
-                            .header p { color: #565959; font-size: 12pt; }
-                            .header .address { color: #888; font-size: 10pt; margin-top: 4px; }
+                            .header .subtitle { font-size: 16pt; font-weight: 800; }
+                            .header .address { color: #888; font-size: 10pt; }
                             .summary { display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap; }
                             .summary-item { background: #f7f7f7; padding: 16px 25px; border-radius: 8px; flex: 1; min-width: 150px; text-align: center; }
-                            .summary-item .number { font-size: 22pt; font-weight: 800; }
+                            .summary-item .number { font-size: 18pt; font-weight: 800; }
                             .summary-item .label { color: #565959; font-size: 11pt; }
                             .summary-item.revenue .number { color: #e67e22; }
                             .summary-item.profit .number { color: #00a859; }
+                            .summary-item.closed .number { color: #e74c3c; }
                             table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-                            th { background: #f7f7f7; padding: 10px 14px; border: 1px solid #ddd; text-align: left; font-weight: 700; font-size: 12pt; }
-                            td { padding: 8px 14px; border: 1px solid #ddd; font-size: 11.5pt; }
+                            th { background: #f7f7f7; padding: 8px 12px; border: 1px solid #ddd; text-align: left; font-weight: 700; }
+                            td { padding: 6px 12px; border: 1px solid #ddd; font-size: 10.5pt; }
                             .total-row { background: #fff8e6; font-weight: bold; }
-                            .footer { text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid #ddd; color: #565959; font-size: 11pt; }
+                            .footer { text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid #ddd; color: #565959; font-size: 10pt; }
                             .footer .brand { color: #e67e22; font-weight: bold; }
                             @media print { body { padding: 15px; } }
                         </style>
@@ -1964,8 +2186,8 @@
                     <body>
                         <div class="header">
                             <h1>🦁 LIONS <span>FASHION</span></h1>
-                            <p style="font-size:16pt;font-weight:800;">RELATÓRIO MENSAL DE VENDAS</p>
-                            <p style="font-size:14pt;font-weight:700;">${dataAtual}</p>
+                            <div class="subtitle">📊 RELATÓRIO COMPLETO DE VENDAS MENSAIS</div>
+                            <p style="font-size:12pt;font-weight:500;">${now.toLocaleDateString('pt-MZ', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
                             <div class="address">Av. Julius Nyerere n°6600 • Maputo - Moçambique</div>
                         </div>
                         
@@ -1983,19 +2205,24 @@
                                 <div class="label">Total de Vendas</div>
                             </div>
                             <div class="summary-item">
-                                <div class="number">${monthlyData.length}</div>
-                                <div class="label">Meses</div>
+                                <div class="number">${totalItems}</div>
+                                <div class="label">Items Vendidos</div>
+                            </div>
+                            <div class="summary-item closed">
+                                <div class="number">${mesesFechados}</div>
+                                <div class="label">Meses Fechados</div>
                             </div>
                         </div>
                         
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Mês</th>
+                                    <th>Mês/Ano</th>
                                     <th style="text-align:center;">Vendas</th>
-                                    <th style="text-align:right;">Total (MZN)</th>
-                                    <th style="text-align:right;">Lucro (MZN)</th>
-                                    <th style="text-align:right;">Margem</th>
+                                    <th style="text-align:right;">Receita</th>
+                                    <th style="text-align:right;">Lucro</th>
+                                    <th style="text-align:right;">Items</th>
+                                    <th style="text-align:center;">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -2005,16 +2232,23 @@
                                     <td style="text-align:center;"><strong>${totalSales}</strong></td>
                                     <td style="text-align:right;"><strong>${totalRevenue.toFixed(2)} MZN</strong></td>
                                     <td style="text-align:right;"><strong>${totalProfit.toFixed(2)} MZN</strong></td>
-                                    <td style="text-align:right;">
-                                        <strong>${totalRevenue > 0 ? (totalProfit / totalRevenue * 100).toFixed(1) : 0}%</strong>
-                                    </td>
+                                    <td style="text-align:right;"><strong>${totalItems}</strong></td>
+                                    <td style="text-align:center;"></td>
                                 </tr>
                             </tbody>
                         </table>
                         
+                        <div style="margin-top:20px; padding:12px; background:#f7f7f7; border-radius:8px; text-align:center;">
+                            <p style="font-size:10pt; color:#555;">
+                                <strong>📌 Legenda:</strong> 
+                                <span style="color:#00a859;">🟢 Aberto</span> • 
+                                <span style="color:#e74c3c;">🔴 Fechado</span>
+                            </p>
+                        </div>
+                        
                         <div class="footer">
                             <p><span class="brand">LIONS FASHION</span> • Corporate Suite</p>
-                            <p style="font-size:9pt;">Relatório gerado automaticamente em ${new Date().toLocaleString('pt-MZ')}</p>
+                            <p style="font-size:9pt;">Relatório gerado em ${new Date().toLocaleString('pt-MZ')}</p>
                         </div>
                         
                         <script>
@@ -2035,7 +2269,7 @@
         }
 
         // ============================================================
-        // 10. PONTO DE VENDA
+        // 11. PONTO DE VENDA
         // ============================================================
         function showPOS() {
             document.getElementById('mainContent').innerHTML = `
@@ -2138,7 +2372,7 @@
         };
 
         // ============================================================
-        // 11. CARRINHO
+        // 12. CARRINHO
         // ============================================================
         window.addToCart = function(id) {
             const product = products.find(p => p.id === id);
@@ -2203,7 +2437,7 @@
         }
 
         // ============================================================
-        // 12. FINALIZAR VENDA
+        // 13. FINALIZAR VENDA - OTIMIZADO PARA IMPRESSORA TÉRMICA
         // ============================================================
         window.finalizeSale = async function() {
             const btn = document.getElementById('finalizarVendaBtn');
@@ -2211,6 +2445,15 @@
 
             try {
                 if (currentCart.length === 0) { showToast('Carrinho vazio', 'warning'); return; }
+
+                const now = new Date();
+                const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                const monthData = monthlySalesData.find(m => m.month_year === monthYear);
+                if (monthData && monthData.closed) {
+                    showToast('⚠️ Este mês está fechado! Não é possível fazer vendas.', 'error');
+                    return;
+                }
+
                 const total = currentCart.reduce((s, i) => s + (i.price * i.quantity), 0);
                 const totalProfit = currentCart.reduce((s, i) => s + ((i.profit || 0) * i.quantity), 0);
                 const received = parseFloat(document.getElementById('amountReceived')?.value) || 0;
@@ -2250,8 +2493,10 @@
                 }
                 await saveProducts();
 
-                // 🔥 IMPRIME COM IFRAME - SEM POPUP BLOQUEADO
-                printReceipt(saleData);
+                await acumularVendaMensal(saleData);
+
+                // 🔥 IMPRIMIR RECIBO NA IMPRESSORA TÉRMICA
+                printReceiptTermica(saleData);
 
                 sales.unshift(saleData);
                 notificarGerente('🛒 Nova Venda', `${saleData.seller} vendeu ${total.toFixed(2)} MZN`);
@@ -2268,26 +2513,29 @@
         };
 
         // ============================================================
-        // 13. RECIBO - IMPRESSÃO VIA IFRAME
+        // 14. IMPRESSÃO DE RECIBO - OTIMIZADO PARA TÉRMICA 80mm
         // ============================================================
-        function printReceipt(sale) {
+        function printReceiptTermica(sale) {
             if (!sale) return;
 
             let itensHtml = '';
             let itemsList = sale.items;
-            if (typeof itemsList === 'string') { try { itemsList = JSON.parse(itemsList); } catch (e) { itemsList = []; } }
+            if (typeof itemsList === 'string') {
+                try { itemsList = JSON.parse(itemsList); } catch (e) { itemsList = []; }
+            }
+
             if (itemsList && Array.isArray(itemsList)) {
                 itemsList.forEach(item => {
-                    const nome = item.name.length > 28 ? item.name.substring(0, 26) + '..' : item.name;
+                    const nome = item.name.length > 24 ? item.name.substring(0, 22) + '..' : item.name;
                     const precoItem = item.price.toFixed(2);
                     const subtotal = (item.price * item.quantity).toFixed(2);
                     itensHtml += `
-                            <div style="display:flex;justify-content:space-between;font-weight:700;padding:2px 0;border-bottom:1px solid #ccc;font-size:15pt;">
-                                <span style="font-weight:800;">${nome}</span>
-                                <span style="font-weight:700;">${item.quantity}×${precoItem}</span>
-                                <span style="font-weight:900;">${subtotal} MZN</span>
-                            </div>
-                        `;
+                        <div style="display:flex;justify-content:space-between;font-size:10pt;padding:2px 0;border-bottom:1px dashed #ccc;">
+                            <span style="font-weight:700;">${nome}</span>
+                            <span style="font-weight:600;">${item.quantity}×${precoItem}</span>
+                            <span style="font-weight:800;color:#e67e22;">${subtotal}</span>
+                        </div>
+                    `;
                 });
             }
 
@@ -2302,65 +2550,138 @@
             const metodoPagamentoStr = sale.payment_method === 'M-pesa' ? 'M-Pesa' :
                 sale.payment_method === 'E-mola' ? 'E-mola' : 'Dinheiro';
 
-            const reciboHtml = `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <meta charset="UTF-8">
-                        <title>Recibo LIONS FASHION</title>
-                        <style>
-                            @page { size: 80mm auto; margin: 2mm; }
-                            body { font-family: 'Courier New', monospace; margin: 0; padding: 4px; font-size: 15pt; font-weight: 700; text-align: center; color: #000; background: #fff; line-height: 1.5; }
-                            .receipt { width: 80mm; margin: 0 auto; padding: 4px 0; }
-                            .title { font-size: 20pt; font-weight: 900; letter-spacing: -1px; }
-                            .sub { font-size: 11pt; font-weight: 500; color: #555; }
-                            .line { border-top: 2px solid #000; margin: 4px 0; }
-                            .line-dash { border-top: 1px dashed #000; margin: 4px 0; }
-                            .info { font-size: 14pt; font-weight: 700; line-height: 1.6; }
-                            .items { text-align: left; padding: 4px 0; font-weight: 700; }
-                            .total-large { font-size: 18pt; font-weight: 900; padding: 4px 0; }
-                            .payment { font-size: 14pt; font-weight: 700; padding: 2px 0; }
-                            .footer { font-size: 15pt; font-weight: 900; padding: 6px 0; }
-                            .small { font-size: 8pt; color: #888; font-weight: 400; padding-top: 4px; }
-                            @media print { body { margin: 0; padding: 0; } }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="receipt">
-                            <div class="title">🦁 LIONS FASHION</div>
-                            <div class="sub">Av. Julius Nyerere n°6600</div>
-                            <div class="sub">Maputo - Moçambique</div>
-                            <div class="sub" style="margin-bottom:4px;">Tel: +258 84 123 4567</div>
-                            <div class="line"></div>
-                            <div class="info">
-                                <div><strong>FACTURA:</strong> ${sale.invoice}</div>
-                                <div><strong>DATA:</strong> ${dataFormatada}</div>
-                                <div><strong>ATENDENTE:</strong> ${sale.seller || 'Vendedor'}</div>
-                            </div>
-                            <div class="line"></div>
-                            <div class="items">
-                                ${itensHtml}
-                            </div>
-                            <div class="line"></div>
-                            <div class="total-large">TOTAL: ${sale.total.toFixed(2)} MZN</div>
-                            <div class="payment">PAGAMENTO: ${metodoPagamentoStr}</div>
-                            ${sale.payment_method === 'Dinheiro MZN' ? `
-                            <div class="payment">RECEBIDO: ${(sale.received || 0).toFixed(2)} MZN<br>TROCO: ${(sale.change || 0).toFixed(2)} MZN</div>
-                            ` : ''}
-                            <div class="line-dash"></div>
-                            <div class="footer">OBRIGADO PELA PREFERÊNCIA!<br>VOLTE SEMPRE! 🦁</div>
-                            <div class="line"></div>
-                            <div class="small">Sistema LIONS FASHION</div>
-                        </div>
-                        <script>
-                            window.print();
-                            setTimeout(function() { window.close(); }, 300);
-                        <\/script>
-                    </body>
-                    </html>
-                `;
+            const numeroVenda = sale.invoice || `VENDA-${String(sales.length + 1).padStart(4, '0')}`;
 
-            // 🔥 IFRAME OCULTO - NUNCA É BLOQUEADO PELO NAVEGADOR
+            const reciboHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Recibo LIONS FASHION</title>
+    <style>
+        @page {
+            size: 80mm auto;
+            margin: 0;
+        }
+        @media print {
+            body { margin: 0; padding: 0; }
+            .no-print { display: none; }
+        }
+        body {
+            font-family: 'Courier New', 'Lucida Console', monospace;
+            width: 80mm;
+            margin: 0 auto;
+            padding: 4px 6px;
+            font-size: 10pt;
+            color: #000;
+            background: #fff;
+            line-height: 1.4;
+            text-align: center;
+        }
+        .receipt { width: 100%; margin: 0 auto; }
+        .title { font-size: 16pt; font-weight: 900; letter-spacing: 2px; color: #e67e22; }
+        .sub { font-size: 9pt; color: #555; font-weight: 600; }
+        .divider { border-top: 2px solid #000; margin: 4px 0; }
+        .divider-dash { border-top: 1px dashed #000; margin: 4px 0; }
+        .info { font-size: 9pt; text-align: left; padding: 2px 0; font-weight: 600; }
+        .info span { font-weight: 400; }
+        .items-header { font-weight: 800; font-size: 10pt; text-align: center; background: #f5f5f5; padding: 2px 0; margin: 2px 0; }
+        .items { text-align: left; padding: 2px 0; }
+        .total-large { font-size: 16pt; font-weight: 900; padding: 6px 0; color: #e67e22; }
+        .payment-info { font-size: 10pt; font-weight: 700; padding: 2px 0; }
+        .footer { font-size: 11pt; font-weight: 900; padding: 6px 0; color: #e67e22; }
+        .footer small { font-size: 8pt; color: #888; font-weight: 400; }
+        .small { font-size: 7pt; color: #aaa; padding-top: 2px; }
+        .barcode-placeholder { font-family: 'Courier New', monospace; letter-spacing: 2px; font-size: 14pt; font-weight: 700; padding: 4px 0; }
+        .thankyou { font-size: 12pt; font-weight: 800; padding: 4px 0; }
+        .receipt-content { page-break-inside: avoid; }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="receipt-content">
+            <div class="title">🦁 LIONS FASHION</div>
+            <div class="sub">Av. Julius Nyerere n°6600</div>
+            <div class="sub">Maputo - Moçambique</div>
+            <div class="sub" style="margin-bottom:4px;">Tel: +258 84 123 4567</div>
+            <div class="divider"></div>
+
+            <div class="info">
+                <div style="display:flex;justify-content:space-between;">
+                    <span>Nº VENDA:</span>
+                    <span style="font-weight:700;">${numeroVenda}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                    <span>DATA/HORA:</span>
+                    <span style="font-weight:700;">${dataFormatada}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                    <span>ATENDENTE:</span>
+                    <span style="font-weight:700;">${sale.seller || 'Vendedor'}</span>
+                </div>
+            </div>
+            <div class="divider-dash"></div>
+
+            <div class="items-header">--- ITENS ---</div>
+            <div class="items">
+                ${itensHtml || '<div style="text-align:center;color:#888;padding:4px 0;">Nenhum item</div>'}
+            </div>
+            <div class="divider-dash"></div>
+
+            <div class="total-large">TOTAL: ${sale.total.toFixed(2)} MZN</div>
+
+            <div class="payment-info">PAGAMENTO: ${metodoPagamentoStr}</div>
+            ${sale.payment_method === 'Dinheiro MZN' ? `
+            <div class="payment-info">
+                RECEBIDO: ${(sale.received || 0).toFixed(2)} MZN<br>
+                TROCO: ${(sale.change || 0).toFixed(2)} MZN
+            </div>
+            ` : ''}
+
+            <div class="divider-dash"></div>
+
+            <div class="thankyou">✨ OBRIGADO! ✨</div>
+            <div class="footer">VOLTE SEMPRE! 🦁</div>
+
+            <div class="barcode-placeholder">| | | | | | | | | |</div>
+            <div class="small">${numeroVenda}</div>
+
+            <div class="divider"></div>
+            <div class="small">Sistema LIONS FASHION v2.0</div>
+            <div class="small">${new Date().toLocaleString('pt-MZ')}</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            window.onload = function() {
+                setTimeout(function() {
+                    try {
+                        window.print();
+                        setTimeout(function() {
+                            window.close();
+                        }, 800);
+                    } catch (e) {
+                        try {
+                            document.execCommand('print');
+                            setTimeout(function() {
+                                window.close();
+                            }, 800);
+                        } catch (e2) {
+                            alert('Clique em "Imprimir" para imprimir o recibo.');
+                        }
+                    }
+                }, 300);
+            };
+            if (document.readyState === 'complete') {
+                window.onload();
+            }
+        })();
+    <\/script>
+</body>
+</html>`;
+
+            // MÉTODO: IFRAME OCULTO
             try {
                 const iframe = document.createElement('iframe');
                 iframe.style.position = 'fixed';
@@ -2379,41 +2700,62 @@
 
                 setTimeout(function() {
                     try {
+                        iframe.contentWindow.focus();
                         iframe.contentWindow.print();
                         setTimeout(function() {
                             if (iframe.parentNode) {
                                 document.body.removeChild(iframe);
                             }
-                        }, 500);
+                        }, 1500);
                     } catch (e) {
-                        console.log("Erro no iframe:", e);
-                        try {
-                            const win = window.open('', '_blank', 'width=400,height=600');
-                            if (win) {
-                                win.document.write(reciboHtml);
-                                win.document.close();
-                            }
-                        } catch (e2) {}
+                        console.log('Erro no iframe:', e);
+                        imprimirPopup(reciboHtml);
                     }
-                }, 300);
+                }, 500);
 
             } catch (e) {
-                try {
-                    const win = window.open('', '_blank', 'width=400,height=600');
-                    if (win) {
-                        win.document.write(reciboHtml);
-                        win.document.close();
-                    } else {
-                        showToast('⚠️ Permita popups para imprimir!', 'warning');
-                    }
-                } catch (e2) {
-                    showToast('❌ Erro ao imprimir recibo!', 'error');
-                }
+                console.log('Erro ao criar iframe:', e);
+                imprimirPopup(reciboHtml);
             }
         }
 
         // ============================================================
-        // 14. DEVOLUÇÃO
+        // FALLBACK: JANELA POPUP
+        // ============================================================
+        function imprimirPopup(html) {
+            try {
+                const win = window.open('', '_blank', 'width=400,height=600,scrollbars=yes');
+                if (win) {
+                    win.document.write(html);
+                    win.document.close();
+                    win.focus();
+                    setTimeout(function() {
+                        try {
+                            win.print();
+                            setTimeout(function() {
+                                win.close();
+                            }, 1000);
+                        } catch (e) {
+                            win.document.body.innerHTML += `
+                                <div style="text-align:center;padding:20px;font-family:Arial;font-size:14pt;">
+                                    <p>Clique em <strong>Imprimir</strong> para imprimir o recibo.</p>
+                                    <button onclick="window.print()" style="padding:12px 30px;font-size:14pt;background:#e67e22;color:white;border:none;border-radius:8px;cursor:pointer;">
+                                        🖨️ Imprimir Recibo
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }, 400);
+                } else {
+                    showToast('⚠️ Permita popups para imprimir o recibo!', 'warning');
+                }
+            } catch (e) {
+                showToast('❌ Erro ao imprimir recibo. Tente novamente.', 'error');
+            }
+        }
+
+        // ============================================================
+        // 15. DEVOLUÇÃO
         // ============================================================
         function abrirModalDevolucao() {
             document.getElementById('devolucaoNome').value = '';
@@ -2496,7 +2838,7 @@
         };
 
         // ============================================================
-        // 15. AUTORIZAÇÃO
+        // 16. AUTORIZAÇÃO
         // ============================================================
         function abrirAuthModal() {
             document.getElementById('authCodigo').value = '';
@@ -2519,7 +2861,7 @@
         }
 
         // ============================================================
-        // 16. GESTÃO DE VENDAS
+        // 17. GESTÃO DE VENDAS
         // ============================================================
         async function showManageSalesPanel() {
             await loadAllData();
@@ -2585,7 +2927,7 @@
         }
 
         // ============================================================
-        // 17. STOCK
+        // 18. STOCK
         // ============================================================
         function showStock() {
             document.getElementById('mainContent').innerHTML = `
@@ -2662,7 +3004,7 @@
         };
 
         // ============================================================
-        // 18. PRODUTOS
+        // 19. PRODUTOS
         // ============================================================
         function showProducts() {
             const container = document.getElementById('mainContent');
@@ -2776,7 +3118,7 @@
         };
 
         // ============================================================
-        // 19. VENDEDORES
+        // 20. VENDEDORES
         // ============================================================
         function showSellers() {
             const sellerList = users.filter(u => u.role === 'seller');
@@ -2846,24 +3188,13 @@
         };
 
         // ============================================================
-        // 20. RELATÓRIOS
+        // 21. RELATÓRIOS
         // ============================================================
         function showReports() {
             const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0);
             const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0);
             const vendasPorVendedor = {};
             sales.forEach(s => { vendasPorVendedor[s.seller] = (vendasPorVendedor[s.seller] || 0) + (s.total || 0); });
-
-            const monthlySales = {};
-            sales.forEach(sale => {
-                const date = new Date(sale.date);
-                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                if (!monthlySales[key]) monthlySales[key] = { total: 0, profit: 0, count: 0 };
-                monthlySales[key].total += sale.total || 0;
-                monthlySales[key].profit += sale.profit || 0;
-                monthlySales[key].count += 1;
-            });
-            const monthlyData = Object.entries(monthlySales).sort((a, b) => a[0].localeCompare(b[0]));
 
             document.getElementById('mainContent').innerHTML = `
                     <div class="stats-grid">
@@ -2891,18 +3222,10 @@
                             </div>
                         </div>
                     </div>
-                    <div class="sales-management-table" style="margin-top:20px;">
-                        <div class="table-header"><h3>📊 Resumo Mensal</h3></div>
-                        <div class="table-container" style="max-height:200px;">
-                            <table>
-                                <thead><tr><th>Mês</th><th style="text-align:center;">Vendas</th><th style="text-align:right;">Total</th><th style="text-align:right;">Lucro</th></tr></thead>
-                                <tbody>${monthlyData.map(([mes, d]) => `
-                                    <tr><td>${mes}</td><td style="text-align:center;">${d.count}</td>
-                                    <td style="text-align:right;color:var(--primary-color);">${d.total.toFixed(2)} MZN</td>
-                                    <td style="text-align:right;color:var(--success);">${d.profit.toFixed(2)} MZN</td></tr>
-                                `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:20px;">Sem dados</td></tr>'}</tbody>
-                            </table>
-                        </div>
+                    <div style="margin-top:20px;">
+                        <button class="btn btn-primary" onclick="gerarRelatorioMensalCompleto()" style="width:100%;padding:14px;font-size:14pt;">
+                            <i class="fas fa-print"></i> Imprimir Relatório Mensal Completo
+                        </button>
                     </div>
                 `;
 
@@ -2927,7 +3250,7 @@
         }
 
         // ============================================================
-        // 21. FECHO DO DIA
+        // 22. FECHO DO DIA
         // ============================================================
         window.fechoDoDia = async function() {
             if (!confirm('⚠️ Tem certeza que deseja fechar o dia? Todas as vendas de hoje serão removidas.')) return;
@@ -2984,7 +3307,7 @@
         };
 
         // ============================================================
-        // 22. BARCODE LISTENER
+        // 23. BARCODE LISTENER
         // ============================================================
         function setupBarcodeListener() {
             document.addEventListener('keydown', function(e) {
@@ -3052,7 +3375,7 @@
         }
 
         // ============================================================
-        // 23. INICIALIZAÇÃO
+        // 24. INICIALIZAÇÃO
         // ============================================================
         window.onload = async () => {
             if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
