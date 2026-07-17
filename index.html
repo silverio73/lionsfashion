@@ -465,7 +465,7 @@
         }
 
         // ============================================================
-        // 4. ACUMULAR VENDA MENSAL (CORRIGIDO - UPSERT)
+        // 4. ACUMULAR VENDA MENSAL
         // ============================================================
         async function acumularVendaMensal(venda) {
             const data = new Date(venda.date);
@@ -475,7 +475,6 @@
             if (typeof items === 'string') { try { items = JSON.parse(items); } catch (e) { items = []; } }
             const totalItems = items.reduce((sum, i) => sum + (i.quantity || 0), 0);
 
-            // PRIMEIRO: VERIFICAR SE O MÊS ESTÁ FECHADO
             const { data: existing, error: fetchError } = await supabaseClient
                 .from('monthly_sales')
                 .select('*')
@@ -492,7 +491,6 @@
                 return;
             }
 
-            // USAR UPSERT PARA EVITAR RACE CONDITION
             const { error } = await supabaseClient
                 .from('monthly_sales')
                 .upsert({
@@ -506,7 +504,6 @@
 
             if (error) console.error('Erro ao atualizar monthly_sales:', error);
 
-            // RECARREGAR DADOS
             const { data: newMonthly } = await supabaseClient.from('monthly_sales').select('*').order('month_year', { ascending: true });
             if (newMonthly) monthlySalesData = newMonthly;
         }
@@ -622,7 +619,7 @@
         };
 
         // ============================================================
-        // 8. DASHBOARD (RESUMIDO PARA ECONOMIZAR ESPAÇO)
+        // 8. DASHBOARD
         // ============================================================
         function showDashboard() {
             const totalSales = sales.length;
@@ -865,87 +862,23 @@
         }
 
         // ============================================================
-        // 12. FINALIZAR VENDA - IMPRESSÃO INSTANTÂNEA (CORRIGIDO)
+        // 12. IMPRIMIR RECIBO - FUNÇÃO PRINCIPAL (DIRETA E RÁPIDA)
         // ============================================================
-        window.finalizeSale = async function() {
-            const btn = document.getElementById('finalizarVendaBtn');
-            if (btn) btn.disabled = true;
-            try {
-                if (currentCart.length === 0) { showToast('Carrinho vazio', 'warning'); return; }
-
-                // VERIFICAR MÊS FECHADO EM TEMPO REAL
-                const mesFechado = await verificarMesFechado();
-                if (mesFechado) {
-                    showToast('⚠️ Este mês está fechado! Não é possível fazer vendas.', 'error');
-                    return;
-                }
-
-                const total = currentCart.reduce((s, i) => s + (i.price * i.quantity), 0);
-                const totalProfit = currentCart.reduce((s, i) => s + ((i.profit || 0) * i.quantity), 0);
-                const received = parseFloat(document.getElementById('amountReceived')?.value) || 0;
-                const paymentMethod = selectedPaymentMethod;
-
-                if (paymentMethod === 'Dinheiro MZN' && received < total) {
-                    showToast('Valor insuficiente!', 'error');
-                    return;
-                }
-
-                const itensLimpos = currentCart.map(i => ({ name: i.name, price: i.price, quantity: i.quantity,
-                    profit: i.profit || 0 }));
-                const invoice = `INV-${Date.now()}`;
-                const saleData = {
-                    date: new Date().toISOString(),
-                    total: total,
-                    profit: totalProfit,
-                    items: JSON.stringify(itensLimpos),
-                    seller: currentUser?.name || "Vendedor",
-                    payment_method: paymentMethod,
-                    received: received,
-                    change: received - total,
-                    invoice: invoice
-                };
-
-                const { error } = await supabaseClient.from('sales').insert([saleData]);
-                if (error) { showToast('Erro: ' + error.message, 'error'); return; }
-
-                for (const item of currentCart) {
-                    const prod = products.find(p => p.id === item.id);
-                    if (prod) prod.stock -= item.quantity;
-                }
-                await saveProducts();
-                await acumularVendaMensal(saleData);
-
-                // === IMPRESSÃO INSTANTÂNEA (MENOS DE 1 SEGUNDO) ===
-                imprimirReciboInstantaneo(saleData);
-
-                sales.unshift(saleData);
-                notificarGerente('🛒 Nova Venda', `${saleData.seller} vendeu ${total.toFixed(2)} MZN`);
-
-                currentCart = [];
-                updateCartDisplay();
-                filterProductsAmazon();
-                showToast(`✅ Venda de ${total.toFixed(2)} MZN registrada!`, 'success');
-            } catch (err) { showToast('❌ Erro ao finalizar venda!', 'error'); } finally { if (btn) btn.disabled = false; }
-        };
-
-        // ============================================================
-        // 13. IMPRESSÃO INSTANTÂNEA OTIMIZADA (MENOS DE 1 SEGUNDO)
-        // ============================================================
-        function imprimirReciboInstantaneo(sale) {
+        function printReceipt(sale) {
             if (!sale) return;
 
-            // GERAR HTML DO RECIBO (OTIMIZADO)
-            let itensHtml = '';
+            // GERAR HTML DOS ITENS
+            let itensStr = '';
             let itemsList = sale.items;
-            if (typeof itemsList === 'string') { try { itemsList = JSON.parse(itemsList); } catch (e) { itemsList = []; } }
+            if (typeof itemsList === 'string') { try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } }
             if (itemsList && Array.isArray(itemsList)) {
                 itemsList.forEach(item => {
-                    const nome = item.name.length > 22 ? item.name.substring(0, 20) + '..' : item.name;
-                    itensHtml +=
-                        `<div style="display:flex;justify-content:space-between;padding:1px 0;font-size:9pt;font-weight:700;border-bottom:1px dotted #ddd;">
-                            <span>${nome}</span>
-                            <span>${item.quantity}×${item.price.toFixed(2)}</span>
-                            <span>${(item.price * item.quantity).toFixed(2)}</span>
+                    const nome = item.name.length > 28 ? item.name.substring(0, 26) + '..' : item.name;
+                    itensStr += `
+                        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12pt;font-weight:900;border-bottom:1px dotted #ddd;">
+                            <span style="font-weight:900;">${nome}</span>
+                            <span style="font-weight:900;">${item.quantity}×${item.price.toFixed(2)}</span>
+                            <span style="font-weight:900;">${(item.price * item.quantity).toFixed(2)}</span>
                         </div>`;
                 });
             }
@@ -967,7 +900,7 @@
                         body {
                             font-family: 'Courier New', monospace;
                             margin: 0;
-                            padding: 3mm;
+                            padding: 0;
                             font-size: 14pt;
                             font-weight: 900;
                             color: #000;
@@ -1062,7 +995,7 @@
                         <div><strong>ATENDENTE:</strong> ${sale.seller || 'Vendedor'}</div>
                     </div>
                     <div class="line"></div>
-                    ${itensHtml}
+                    ${itensStr}
                     <div class="line"></div>
                     <div class="total">TOTAL: ${sale.total.toFixed(2)} MZN</div>
                     <div class="payment">PAGAMENTO: ${metodoPagamentoStr}</div>
@@ -1084,33 +1017,59 @@
                 </html>
             `;
 
-            // MÉTODO 1: IFRAME OCULTO (MAIS RÁPIDO)
-            const iframe = document.createElement('iframe');
-            iframe.style.position = 'fixed';
-            iframe.style.top = '-9999px';
-            iframe.style.left = '-9999px';
-            iframe.style.width = '0';
-            iframe.style.height = '0';
-            iframe.style.border = 'none';
-            document.body.appendChild(iframe);
+            // IMPRESSÃO DIRETA E RÁPIDA - SEM ASYNC
+            try {
+                const iframe = document.createElement('iframe');
+                iframe.style.position = 'fixed';
+                iframe.style.top = '-9999px';
+                iframe.style.left = '-9999px';
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.border = 'none';
+                document.body.appendChild(iframe);
 
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-            iframeDoc.open();
-            iframeDoc.write(htmlRecibo);
-            iframeDoc.close();
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                iframeDoc.open();
+                iframeDoc.write(htmlRecibo);
+                iframeDoc.close();
 
-            // REMOVER IFRAME APÓS IMPRESSÃO
-            setTimeout(() => {
-                if (iframe.parentNode) {
-                    document.body.removeChild(iframe);
+                // IMPRIME DIRETAMENTE - SEM DELAY
+                try {
+                    iframe.contentWindow.print();
+                } catch(e) {
+                    const win = window.open('', '_blank', 'width=420,height=680');
+                    if (win) {
+                        win.document.write(htmlRecibo);
+                        win.document.close();
+                    } else {
+                        showToast('⚠️ Permita popups para imprimir!', 'warning');
+                    }
                 }
-            }, 300);
 
-            // MÉTODO 2: MODAL VISUAL (PARA REIMPRESSÃO)
+                // REMOVE O IFRAME APÓS IMPRIMIR
+                setTimeout(() => {
+                    if (iframe.parentNode) {
+                        document.body.removeChild(iframe);
+                    }
+                }, 300);
+
+            } catch(e) {
+                const win = window.open('', '_blank', 'width=420,height=680');
+                if (win) {
+                    win.document.write(htmlRecibo);
+                    win.document.close();
+                } else {
+                    showToast('⚠️ Permita popups para imprimir!', 'warning');
+                }
+            }
+
+            // MODAL VISUAL (APENAS PARA CONSULTA - NÃO IMPRIME)
             mostrarReciboModal(sale);
         }
 
-        // ===== MODAL VISUAL =====
+        // ============================================================
+        // 13. MODAL VISUAL (APENAS CONSULTA)
+        // ============================================================
         function mostrarReciboModal(sale) {
             let itensHtml = '';
             let itemsList = sale.items;
@@ -1119,7 +1078,7 @@
                 itemsList.forEach(item => {
                     const nome = item.name.length > 28 ? item.name.substring(0, 26) + '..' : item.name;
                     itensHtml +=
-                        `<div class="receipt-item"><span>${nome}</span><span>${item.quantity}×${item.price.toFixed(2)}</span><span>${(item.price * item.quantity).toFixed(2)} MZN</span></div>`;
+                        `<div class="receipt-item"><span style="font-weight:900;">${nome}</span><span style="font-weight:900;">${item.quantity}×${item.price.toFixed(2)}</span><span style="font-weight:900;">${(item.price * item.quantity).toFixed(2)} MZN</span></div>`;
                 });
             }
 
@@ -1133,11 +1092,11 @@
             const box = document.getElementById('receiptBox');
 
             box.innerHTML = `
-                <div class="receipt-title">LIONS FASHION</div>
-                <div class="receipt-sub">Av. Julius Nyerere n°6600</div>
-                <div class="receipt-sub" style="margin-bottom:4px;">Maputo - Moçambique</div>
+                <div class="receipt-title" style="font-weight:900;">LIONS FASHION</div>
+                <div class="receipt-sub" style="font-weight:900;font-size:12pt;">Av. Julius Nyerere n°6600</div>
+                <div class="receipt-sub" style="margin-bottom:4px;font-weight:700;">Maputo - Moçambique</div>
                 <div class="receipt-line"></div>
-                <div class="receipt-info">
+                <div class="receipt-info" style="text-align:center;font-weight:900;">
                     <div><strong>FACTURA:</strong> ${sale.invoice}</div>
                     <div><strong>DATA:</strong> ${dataFormatada}</div>
                     <div><strong>ATENDENTE:</strong> ${sale.seller || 'Vendedor'}</div>
@@ -1145,15 +1104,16 @@
                 <div class="receipt-line"></div>
                 ${itensHtml}
                 <div class="receipt-line"></div>
-                <div class="receipt-total">TOTAL: ${sale.total.toFixed(2)} MZN</div>
-                <div class="receipt-payment">PAGAMENTO: ${metodoPagamentoStr}</div>
+                <div class="receipt-total" style="font-weight:900;">TOTAL: ${sale.total.toFixed(2)} MZN</div>
+                <div class="receipt-payment" style="font-weight:900;">PAGAMENTO: ${metodoPagamentoStr}</div>
                 ${sale.payment_method === 'Dinheiro MZN' ? `
-                <div class="receipt-payment">RECEBIDO: ${(sale.received || 0).toFixed(2)} MZN<br>TROCO: ${(sale.change || 0).toFixed(2)} MZN</div>
+                <div class="receipt-payment" style="font-weight:900;">RECEBIDO: ${(sale.received || 0).toFixed(2)} MZN</div>
+                <div class="receipt-payment" style="font-weight:900;">TROCO: ${(sale.change || 0).toFixed(2)} MZN</div>
                 ` : ''}
                 <div class="receipt-line-dash"></div>
-                <div class="receipt-footer">OBRIGADO PELA PREFERÊNCIA!<br>VOLTE SEMPRE!</div>
+                <div class="receipt-footer" style="font-weight:900;">OBRIGADO PELA PREFERÊNCIA!<br>VOLTE SEMPRE!</div>
                 <div class="receipt-line"></div>
-                <div class="receipt-small">Sistema LIONS FASHION</div>
+                <div class="receipt-small" style="font-weight:700;">Sistema LIONS FASHION</div>
                 <div class="receipt-actions">
                     <button class="btn-print" onclick="reimprimirRecibo()"><i class="fas fa-print"></i> Reimprimir</button>
                     <button class="btn-close" onclick="fecharReciboModal()"><i class="fas fa-times"></i> Fechar</button>
@@ -1171,36 +1131,37 @@
             const conteudo = box.innerHTML;
             const conteudoLimpo = conteudo.replace(/<div class="receipt-actions">.*?<\/div>/s, '');
 
-            const win = window.open('', '_blank', 'width=400,height=600');
+            const win = window.open('', '_blank', 'width=420,height=680');
             if (win) {
                 win.document.write(`
                     <html>
                     <head>
                         <title>Recibo LIONS FASHION</title>
                         <style>
-                            @page { size: 80mm auto; margin: 2mm; }
-                            body { font-family: 'Courier New', monospace; margin: 0; padding: 4px; font-size: 12pt; font-weight: 700; text-align: center; color: #000; background: #fff; line-height: 1.4; }
+                            @page { size: 80mm auto; margin: 0; }
+                            body { font-family: 'Courier New', monospace; margin: 0; padding: 0; font-size: 14pt; font-weight: 900; text-align: center; color: #000; background: #fff; line-height: 1.5; width: 80mm; }
                             .receipt-title { font-size: 18pt; font-weight: 900; text-align: center; letter-spacing: -0.5px; }
-                            .receipt-sub { font-size: 10pt; text-align: center; color: #555; font-weight: 500; }
-                            .receipt-line { border-top: 2px solid #000; margin: 6px 0; }
-                            .receipt-line-dash { border-top: 1px dashed #000; margin: 6px 0; }
-                            .receipt-info { font-size: 11pt; font-weight: 600; line-height: 1.6; }
-                            .receipt-item { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #eee; font-size: 12pt; font-weight: 700; }
-                            .receipt-total { font-size: 16pt; font-weight: 900; text-align: center; padding: 4px 0; }
-                            .receipt-payment { font-size: 12pt; font-weight: 700; text-align: center; padding: 2px 0; }
-                            .receipt-footer { font-size: 14pt; font-weight: 900; text-align: center; padding: 6px 0; }
-                            .receipt-small { font-size: 8pt; color: #888; font-weight: 400; text-align: center; }
+                            .receipt-sub { font-size: 12pt; text-align: center; color: #000; font-weight: 900; }
+                            .receipt-line { border-top: 2px solid #000; margin: 4px 0; }
+                            .receipt-line-dash { border-top: 1px dashed #000; margin: 4px 0; }
+                            .receipt-info { font-size: 11pt; font-weight: 900; line-height: 1.6; text-align: left; }
+                            .receipt-info div { text-align: left; padding-left: 2px; }
+                            .receipt-item { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12pt; font-weight: 900; border-bottom: 1px dotted #ddd; text-align: left; }
+                            .receipt-total { font-size: 16pt; font-weight: 900; text-align: left; padding: 4px 0; }
+                            .receipt-payment { font-size: 12pt; font-weight: 900; text-align: left; padding: 3px 0; }
+                            .receipt-footer { font-size: 14pt; font-weight: 900; text-align: center; padding: 5px 0; }
+                            .receipt-small { font-size: 9pt; color: #888; font-weight: 700; text-align: center; }
                             .receipt-actions { display: none; }
                             @media print { body { margin: 0; padding: 0; } .receipt-actions { display: none !important; } }
                         </style>
                     </head>
                     <body>
-                        <div style="width:80mm;margin:0 auto;padding:4px 0;">
+                        <div style="width:80mm;margin:0 auto;padding:0;">
                             ${conteudoLimpo}
                         </div>
                         <script>
                             window.print();
-                            setTimeout(() => window.close(), 500);
+                            setTimeout(() => window.close(), 300);
                         <\/script>
                     </body>
                     </html>
@@ -1216,7 +1177,70 @@
         }
 
         // ============================================================
-        // 14. DEVOLUÇÃO
+        // 14. FINALIZAR VENDA
+        // ============================================================
+        window.finalizeSale = async function() {
+            const btn = document.getElementById('finalizarVendaBtn');
+            if (btn) btn.disabled = true;
+            try {
+                if (currentCart.length === 0) { showToast('Carrinho vazio', 'warning'); return; }
+
+                const mesFechado = await verificarMesFechado();
+                if (mesFechado) {
+                    showToast('⚠️ Este mês está fechado!', 'error');
+                    return;
+                }
+
+                const total = currentCart.reduce((s, i) => s + (i.price * i.quantity), 0);
+                const totalProfit = currentCart.reduce((s, i) => s + ((i.profit || 0) * i.quantity), 0);
+                const received = parseFloat(document.getElementById('amountReceived')?.value) || 0;
+                const paymentMethod = selectedPaymentMethod;
+
+                if (paymentMethod === 'Dinheiro MZN' && received < total) {
+                    showToast('Valor insuficiente!', 'error');
+                    return;
+                }
+
+                const itensLimpos = currentCart.map(i => ({ name: i.name, price: i.price, quantity: i.quantity,
+                    profit: i.profit || 0 }));
+                const invoice = `INV-${Date.now()}`;
+                const saleData = {
+                    date: new Date().toISOString(),
+                    total: total,
+                    profit: totalProfit,
+                    items: JSON.stringify(itensLimpos),
+                    seller: currentUser?.name || "Vendedor",
+                    payment_method: paymentMethod,
+                    received: received,
+                    change: received - total,
+                    invoice: invoice
+                };
+
+                const { error } = await supabaseClient.from('sales').insert([saleData]);
+                if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+                for (const item of currentCart) {
+                    const prod = products.find(p => p.id === item.id);
+                    if (prod) prod.stock -= item.quantity;
+                }
+                await saveProducts();
+                await acumularVendaMensal(saleData);
+
+                // IMPRIME DIRETO E RÁPIDO
+                printReceipt(saleData);
+
+                sales.unshift(saleData);
+                notificarGerente('🛒 Nova Venda', `${saleData.seller} vendeu ${total.toFixed(2)} MZN`);
+
+                currentCart = [];
+                updateCartDisplay();
+                filterProductsAmazon();
+                showToast(`✅ Venda de ${total.toFixed(2)} MZN registrada!`, 'success');
+            } catch (err) { showToast('❌ Erro ao finalizar venda!', 'error'); } finally { if (btn) btn.disabled = false; }
+        };
+
+        // ============================================================
+        // 15. DEVOLUÇÃO
         // ============================================================
         function abrirModalDevolucao() {
             document.getElementById('devolucaoNome').value = '';
@@ -1279,7 +1303,7 @@
         };
 
         // ============================================================
-        // 15. AUTORIZAÇÃO
+        // 16. AUTORIZAÇÃO
         // ============================================================
         function abrirAuthModal() {
             document.getElementById('authCodigo').value = '';
@@ -1296,7 +1320,7 @@
         }
 
         // ============================================================
-        // 16. GESTÃO DE VENDAS
+        // 17. GESTÃO DE VENDAS
         // ============================================================
         async function showManageSalesPanel() {
             await loadAllData();
@@ -1350,7 +1374,7 @@
         }
 
         // ============================================================
-        // 17. STOCK
+        // 18. STOCK
         // ============================================================
         function showStock() {
             document.getElementById('mainContent').innerHTML = `
@@ -1387,7 +1411,7 @@
         };
 
         // ============================================================
-        // 18. PRODUTOS
+        // 19. PRODUTOS
         // ============================================================
         function showProducts() {
             const container = document.getElementById('mainContent');
@@ -1488,7 +1512,7 @@
         };
 
         // ============================================================
-        // 19. VENDEDORES
+        // 20. VENDEDORES
         // ============================================================
         function showSellers() {
             const sellerList = users.filter(u => u.role === 'seller');
@@ -1557,7 +1581,7 @@
         };
 
         // ============================================================
-        // 20. RELATÓRIOS
+        // 21. RELATÓRIOS
         // ============================================================
         function showReports() {
             const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0);
@@ -1611,7 +1635,7 @@
         }
 
         // ============================================================
-        // 21. FECHO DO DIA
+        // 22. FECHO DO DIA
         // ============================================================
         window.fechoDoDia = async function() {
             if (!confirm('⚠️ Tem certeza que deseja fechar o dia?')) return;
@@ -1636,7 +1660,7 @@
         };
 
         // ============================================================
-        // 22. BARCODE LISTENER
+        // 23. BARCODE LISTENER
         // ============================================================
         function setupBarcodeListener() {
             document.addEventListener('keydown', function(e) {
@@ -1690,7 +1714,7 @@
         }
 
         // ============================================================
-        // 23. INICIALIZAÇÃO
+        // 24. INICIALIZAÇÃO
         // ============================================================
         window.onload = async () => {
             if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
