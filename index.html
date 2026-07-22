@@ -1182,7 +1182,7 @@
             await updateMonthlySales(total);
             await loadAllData();
             
-            // ===== IMPRESSÃO DO RECIBO =====
+            // ===== IMPRESSÃO DO RECIBO (SEM LOCRO, 13pt BOLD, IMPRESSÃO INSTANTÂNEA) =====
             printReceipt(saleData);
             
             const paymentIcon = paymentMethod === 'M-pesa' ? '📱' : paymentMethod === 'E-mola' ? '📶' : '💰';
@@ -1194,7 +1194,7 @@
             showToast(`✅ Venda de ${total.toLocaleString()} MZN (Lucro: ${totalProfit.toLocaleString()} MZN) registrada!`, 'success');
         };
         
-        // ===== IMPRESSÃO DO RECIBO (13pt bold, centralizado, sem bordas) =====
+        // ===== IMPRESSÃO DO RECIBO (13pt bold, centralizado, sem bordas, SEM LOCRO) =====
         function printReceipt(sale) {
             if (!sale) return;
             let itensStr = '';
@@ -1211,6 +1211,7 @@
             const dataFormatada = new Date(sale.date).toLocaleString('pt-MZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
             const linha = '----------------------------------------';
             const linhaDupla = '========================================';
+            // RECIBO SEM LOCRO (removido o "Locro" do cabeçalho)
             const receipt = `
             🦁 LIONS FASHION
         Av. Julius Nyerere n°6600
@@ -1233,7 +1234,8 @@ ${linhaDupla}
            VOLTE SEMPRE!`;
 
             try {
-                const win = window.open('', '_blank');
+                // Abre janela pop-up, imprime e fecha instantaneamente
+                const win = window.open('', '_blank', 'width=300,height=500');
                 if (win) {
                     win.document.write(`<html><head><title>Recibo LIONS</title>
                         <style>
@@ -1264,12 +1266,17 @@ ${linhaDupla}
                         </style>
                     </head><body><pre>${receipt}</pre>
                     <script>
+                        // Imprime imediatamente e fecha após 500ms
                         window.print();
-                        setTimeout(() => window.close(), 800);
+                        setTimeout(() => window.close(), 500);
                     <\/script></body></html>`);
                     win.document.close();
-                } else { showToast('⚠️ Permita popups para imprimir o recibo!', 'warning'); }
-            } catch(e) { console.log("Erro ao imprimir:", e.message); }
+                } else { 
+                    showToast('⚠️ Permita popups para imprimir o recibo!', 'warning'); 
+                }
+            } catch(e) { 
+                console.log("Erro ao imprimir:", e.message); 
+            }
         }
         
         // ===== FECHO DO DIA =====
