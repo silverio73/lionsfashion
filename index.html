@@ -47,7 +47,6 @@
             transition: all 0.3s ease;
         }
         
-        /* ===== ANIMAÇÕES ===== */
         @keyframes fadeInUp { 
             from { opacity: 0; transform: translateY(30px); } 
             to { opacity: 1; transform: translateY(0); } 
@@ -61,7 +60,6 @@
             to { transform: translateX(0); opacity: 1; }
         }
         
-        /* ===== LOGIN ===== */
         .login-container { 
             position: fixed; 
             top: 0; 
@@ -121,7 +119,6 @@
         }
         .login-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(212,175,55,0.3); }
         
-        /* ===== TOP BAR COM BOTÕES DE TEMA ===== */
         .top-bar { 
             background: var(--bg-secondary);
             position: fixed; 
@@ -188,7 +185,6 @@
             font-size: 18px;
         }
         
-        /* ===== SIDEBAR ===== */
         .sidebar { 
             width: 280px; 
             background: var(--bg-secondary);
@@ -225,7 +221,6 @@
         
         .menu-toggle { display: none; position: fixed; top: 18px; left: 18px; z-index: 1001; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 12px; border-radius: 12px; cursor: pointer; }
         
-        /* ===== MAIN CONTENT ===== */
         .main-content { 
             margin-left: 280px; 
             margin-top: 70px; 
@@ -236,7 +231,6 @@
             min-height: calc(100vh - 70px);
         }
         
-        /* ===== CARDS ===== */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 25px; margin-bottom: 35px; }
         
         .stat-card { 
@@ -257,7 +251,6 @@
         .profit-card i { color: #10b981; }
         .profit-value { color: #10b981 !important; }
         
-        /* ===== POS ===== */
         .pos-interface { display: grid; grid-template-columns: 1fr 420px; gap: 25px; height: calc(100vh - 130px); }
         
         .products-panel, .cart-panel { 
@@ -380,7 +373,6 @@
         .btn-warning { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
         .btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
         
-        /* ===== DATA TABLE ===== */
         .data-table { 
             background: var(--bg-secondary);
             border-radius: 24px; 
@@ -395,7 +387,6 @@
         .data-table td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
         .data-table tr:last-child td { border-bottom: none; }
         
-        /* ===== MODAL ===== */
         .modal { 
             position: fixed; 
             top: 0; 
@@ -437,7 +428,6 @@
             border-color: var(--gold);
         }
         
-        /* ===== TOAST E NOTIFICAÇÕES ===== */
         .toast { 
             position: fixed; 
             bottom: 30px; 
@@ -504,7 +494,6 @@
             animation: fadeInUp 0.3s ease;
         }
         
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 1024px) {
             .pos-interface { grid-template-columns: 1fr; height: auto; }
             .top-bar { left: 0; padding-left: 70px; }
@@ -526,7 +515,6 @@
     </style>
 </head>
 <body>
-    <!-- ===== LOGIN ===== -->
     <div class="login-container" id="loginContainer">
         <div class="login-card">
             <div class="login-logo">
@@ -551,7 +539,6 @@
         </div>
     </div>
     
-    <!-- ===== APP ===== -->
     <div class="app-container" id="appContainer">
         <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
         
@@ -612,7 +599,7 @@
         let currentTheme = 'dark';
         const CATEGORIAS = ["Calçado", "Vestuário", "Bolsa", "Pasta"];
         let monthlySalesTotal = 0;
-        let lastResetDate = null;
+        let isOnline = navigator.onLine;
         
         // ===== TEMA =====
         function toggleTheme() {
@@ -641,7 +628,94 @@
             }
         }
         
-        // ===== VENDAS MENSAIS (persistente no Supabase) =====
+        // ===== STATUS ONLINE/OFFLINE =====
+        function updateOnlineStatus() {
+            isOnline = navigator.onLine;
+            const badge = document.getElementById('onlineStatus');
+            if (isOnline) {
+                badge.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Online • Sincronizado';
+                badge.style.background = '#10b981';
+            } else {
+                badge.innerHTML = '<i class="fas fa-cloud-off-alt"></i> Offline • Local';
+                badge.style.background = '#ef4444';
+            }
+        }
+        
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        
+        // ===== CARREGAR DADOS =====
+        async function loadAllData() {
+            try {
+                // Tenta carregar do Supabase
+                const [produtosRes, vendasRes, usuariosRes] = await Promise.all([
+                    supabaseClient.from('products').select('*'),
+                    supabaseClient.from('sales').select('*').order('date', { ascending: false }),
+                    supabaseClient.from('users').select('*')
+                ]);
+                
+                if (produtosRes.data) {
+                    products = produtosRes.data;
+                    localStorage.setItem('lions_products', JSON.stringify(products));
+                }
+                if (vendasRes.data) {
+                    sales = vendasRes.data;
+                    localStorage.setItem('lions_sales', JSON.stringify(sales));
+                }
+                if (usuariosRes.data) {
+                    users = usuariosRes.data;
+                    localStorage.setItem('lions_users', JSON.stringify(users));
+                }
+                
+                dataLoaded = true;
+                updateOnlineStatus();
+                
+                // Carrega vendas mensais
+                await loadMonthlySales();
+                
+                if (currentUser && document.getElementById('pageTitle')?.innerText.includes('Dashboard')) showDashboard();
+            } catch (err) {
+                console.log("Modo Offline - Carregando dados locais...");
+                // Carrega do localStorage
+                const localProducts = localStorage.getItem('lions_products');
+                const localSales = localStorage.getItem('lions_sales');
+                const localUsers = localStorage.getItem('lions_users');
+                
+                if (localProducts) products = JSON.parse(localProducts);
+                if (localSales) sales = JSON.parse(localSales);
+                if (localUsers) users = JSON.parse(localUsers);
+                
+                dataLoaded = true;
+                updateOnlineStatus();
+                
+                if (currentUser && document.getElementById('pageTitle')?.innerText.includes('Dashboard')) showDashboard();
+            }
+        }
+        
+        async function saveProducts() {
+            try {
+                for (const p of products) await supabaseClient.from('products').upsert(p);
+                localStorage.setItem('lions_products', JSON.stringify(products));
+            } catch (err) {
+                localStorage.setItem('lions_products', JSON.stringify(products));
+            }
+        }
+        
+        async function saveSaleToSupabase(saleData) {
+            try {
+                const { error } = await supabaseClient.from('sales').insert([saleData]);
+                if (error) throw error;
+                return true;
+            } catch (err) {
+                // Salva localmente para sincronizar depois
+                let pendingSales = JSON.parse(localStorage.getItem('lions_pending_sales') || '[]');
+                pendingSales.push(saleData);
+                localStorage.setItem('lions_pending_sales', JSON.stringify(pendingSales));
+                return false;
+            }
+        }
+        
+        // ===== VENDAS MENSAIS =====
         async function loadMonthlySales() {
             try {
                 const { data, error } = await supabaseClient
@@ -664,93 +738,38 @@
                     
                     if (recordMonth === currentMonth && recordYear === currentYear) {
                         monthlySalesTotal = record.total || 0;
-                        lastResetDate = record.date;
                     } else {
-                        // Reset mensal
                         monthlySalesTotal = 0;
-                        await supabaseClient.from('monthly_sales').insert([{
-                            date: new Date().toISOString(),
-                            total: 0,
-                            month: currentMonth,
-                            year: currentYear
-                        }]);
                     }
                 } else {
-                    // Primeira execução
                     monthlySalesTotal = 0;
-                    await supabaseClient.from('monthly_sales').insert([{
-                        date: new Date().toISOString(),
-                        total: 0,
-                        month: currentMonth,
-                        year: currentYear
-                    }]);
                 }
+                localStorage.setItem('lions_monthly_sales', JSON.stringify(monthlySalesTotal));
             } catch (err) {
-                console.error("Erro ao carregar vendas mensais:", err);
-                monthlySalesTotal = 0;
+                const local = localStorage.getItem('lions_monthly_sales');
+                if (local) monthlySalesTotal = JSON.parse(local);
+                else monthlySalesTotal = 0;
             }
         }
         
         async function updateMonthlySales(amount) {
             try {
                 monthlySalesTotal += amount;
-                const today = new Date();
+                localStorage.setItem('lions_monthly_sales', JSON.stringify(monthlySalesTotal));
                 await supabaseClient.from('monthly_sales').upsert([{
                     id: 1,
                     date: new Date().toISOString(),
                     total: monthlySalesTotal,
-                    month: today.getMonth(),
-                    year: today.getFullYear()
+                    month: new Date().getMonth(),
+                    year: new Date().getFullYear()
                 }]);
             } catch (err) {
-                console.error("Erro ao atualizar vendas mensais:", err);
+                // Apenas salva localmente
+                localStorage.setItem('lions_monthly_sales', JSON.stringify(monthlySalesTotal));
             }
         }
         
         // ===== NOTIFICAÇÕES =====
-        function notificarGerente(titulo, mensagem, tipo = 'info') {
-            const notificacao = document.createElement('div');
-            notificacao.className = 'notification';
-            const icon = tipo === 'success' ? 'fa-check-circle' : tipo === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
-            notificacao.innerHTML = `<i class="fas ${icon}" style="color: var(--gold);"></i><strong>${titulo}</strong><span>${mensagem}</span>`;
-            document.body.appendChild(notificacao);
-            setTimeout(() => notificacao.remove(), 5000);
-            if (Notification.permission === 'granted') {
-                new Notification('🦁 LIONS FASHION', { body: mensagem });
-            }
-        }
-        
-        // ===== CARREGAR DADOS =====
-        async function loadAllData() {
-            try {
-                console.log("🔄 Buscando dados do Supabase...");
-                const [produtosRes, vendasRes, usuariosRes] = await Promise.all([
-                    supabaseClient.from('products').select('*'),
-                    supabaseClient.from('sales').select('*').order('date', { ascending: false }),
-                    supabaseClient.from('users').select('*')
-                ]);
-                if (produtosRes.data) products = produtosRes.data;
-                if (vendasRes.data) {
-                    sales = vendasRes.data;
-                    console.log(`✅ ${sales.length} vendas carregadas do Supabase`);
-                }
-                if (usuariosRes.data) users = usuariosRes.data;
-                dataLoaded = true;
-                document.getElementById('onlineStatus').innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Supabase • Sincronizado';
-                
-                await loadMonthlySales();
-                
-                if (currentUser && document.getElementById('pageTitle')?.innerText.includes('Dashboard')) showDashboard();
-            } catch (err) {
-                console.error("Erro:", err);
-                dataLoaded = true;
-            }
-        }
-        
-        async function saveProducts() {
-            for (const p of products) await supabaseClient.from('products').upsert(p);
-        }
-        
         function showToast(msg, type = 'success') {
             const toast = document.createElement('div');
             toast.className = 'toast';
@@ -758,6 +777,15 @@
             toast.innerHTML = `<i class="fas ${icon}" style="color: var(--gold);"></i><span>${msg}</span>`;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
+        }
+        
+        function notificarGerente(titulo, mensagem, tipo = 'info') {
+            const notificacao = document.createElement('div');
+            notificacao.className = 'notification';
+            const icon = tipo === 'success' ? 'fa-check-circle' : tipo === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+            notificacao.innerHTML = `<i class="fas ${icon}" style="color: var(--gold);"></i><strong>${titulo}</strong><span>${mensagem}</span>`;
+            document.body.appendChild(notificacao);
+            setTimeout(() => notificacao.remove(), 5000);
         }
         
         function selectPaymentMethod(method) {
@@ -791,7 +819,6 @@
             }
         }
         
-        // ===== ADICIONAR POR CÓDIGO DE BARRAS =====
         window.addByBarcode = async function() {
             const barcode = document.getElementById('barcodeInput')?.value.trim();
             if (!barcode) {
@@ -821,7 +848,6 @@
             showToast(`✅ ${product.name} adicionado!`, 'success');
         };
         
-        // ===== DEVOLUÇÃO =====
         window.devolverProduto = async function() {
             const nomeProduto = prompt("Digite o nome do produto a ser devolvido:");
             if (!nomeProduto) return;
@@ -845,21 +871,6 @@
                 produto.stock += quantidade;
                 await saveProducts();
                 
-                const devolucaoData = {
-                    date: new Date().toISOString(),
-                    product_name: produto.name,
-                    product_barcode: produto.barcode,
-                    quantity: quantidade,
-                    unit_price: produto.salePrice,
-                    total_value: valorTotalDevolucao,
-                    seller: currentUser?.name || "Sistema",
-                    type: "devolucao"
-                };
-                
-                try {
-                    await supabaseClient.from('devolucoes').insert([devolucaoData]);
-                } catch(e) { console.log("Tabela devolucoes não existe"); }
-                
                 notificarGerente('🔄 Devolução', `${quantidade}x ${produto.name} (${valorTotalDevolucao.toLocaleString()} MZN) devolvido!`, 'warning');
                 showToast(`✅ ${quantidade}x ${produto.name} devolvido! Stock: ${produto.stock}`, 'success');
                 
@@ -868,7 +879,6 @@
             }
         };
         
-        // ===== SCANNER STOCK =====
         window.scanForStock = async function() {
             const barcode = document.getElementById('stockBarcodeInput')?.value.trim();
             if (!barcode) {
@@ -908,7 +918,6 @@
             document.getElementById('stockBarcodeInput').focus();
         };
         
-        // ===== LEITOR DE CÓDIGO DE BARRAS =====
         function setupBarcodeListener() {
             document.addEventListener('keydown', function(e) {
                 if (document.getElementById('pageTitle')?.innerText !== 'Ponto de Venda') return;
@@ -963,14 +972,12 @@
                 document.querySelectorAll('.admin-only').forEach(el => el.style.display = user.role === 'admin' ? 'flex' : 'none');
                 showDashboard();
                 showToast(`Bem-vindo(a) ${user.name}!`, 'success');
-                notificarGerente('Login', `${user.name} entrou no sistema`, 'info');
             } else showToast('ID ou senha incorretos!', 'error');
         };
         
         window.logout = function() { currentUser = null; currentCart = []; document.getElementById('loginContainer').style.display = 'flex'; document.getElementById('appContainer').style.display = 'none'; };
         window.toggleSidebar = function() { document.getElementById('sidebar').classList.toggle('active'); };
         
-        // ===== NAVEGAÇÃO =====
         window.navigateTo = function(view) {
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
             if (event && event.target) event.target.closest('.nav-item')?.classList.add('active');
@@ -1022,7 +1029,6 @@
                 <div class="data-table"><h3 style="margin-bottom:15px;">🔄 Últimas Vendas</h3><table><thead><tr><th>Factura</th><th>Data</th><th>Vendedor</th><th>Total</th><th>Lucro</th></tr></thead><tbody>${sales.slice(0, 10).map(s => `<tr><td style="font-weight:600;">${s.invoice || 'N/A'}</td><td>${new Date(s.date).toLocaleString()}</td><td>${s.seller || 'N/A'}</td><td style="font-weight:700;">${(s.total || 0).toLocaleString()} MZN</td><td style="color:#10b981;">${(s.profit || 0).toLocaleString()} MZN</td></tr>`).join('') || '<tr><td colspan="5">Sem vendas registadas</td>'}</tbody></table></div>
             `;
             
-            // Gráfico mensal
             if (typeof Chart !== 'undefined') {
                 const monthlyData = {};
                 sales.forEach(s => {
@@ -1149,6 +1155,97 @@
             if (span) { span.innerHTML = change >= 0 ? `${change.toLocaleString()} MZN` : `Faltam ${Math.abs(change).toLocaleString()} MZN`; span.style.color = change >= 0 ? '#10b981' : '#ef4444'; }
         };
         
+        // ===== FUNÇÃO DE IMPRESSÃO ULTRA RÁPIDA =====
+        function printReceipt(sale) {
+            // Gera o conteúdo do recibo
+            let itensStr = '';
+            let itemsList = sale.items;
+            if (typeof itemsList === 'string') { 
+                try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } 
+            }
+            if (itemsList && Array.isArray(itemsList)) {
+                itemsList.forEach(item => { 
+                    const nome = item.name.length > 28 ? item.name.substring(0, 26) + '..' : item.name;
+                    const precoItem = item.price.toLocaleString();
+                    const subtotal = (item.price * item.quantity).toLocaleString();
+                    itensStr += `${nome}\n${' '.repeat(8)}${item.quantity} x ${precoItem} MZN     ${subtotal} MZN\n`;
+                });
+            }
+            const dataFormatada = new Date(sale.date).toLocaleString('pt-MZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const linha = '----------------------------------------';
+            const linhaDupla = '========================================';
+            
+            const receipt = `
+🦁 LIONS FASHION
+Av. Julius Nyerere n°6600
+Maputo - Moçambique
+
+${linhaDupla}
+ FACTURA: ${sale.invoice}
+ DATA: ${dataFormatada}
+ ATENDENTE: ${sale.seller || 'Vendedor'}
+${linha}
+${itensStr}
+${linha}
+ TOTAL: ${sale.total.toLocaleString()} MZN
+ LUCRO: ${(sale.profit || 0).toLocaleString()} MZN
+ PAGAMENTO: ${sale.payment_method || 'Dinheiro'}
+${sale.payment_method === 'Dinheiro MZN' ? ` RECEBIDO: ${(sale.received || 0).toLocaleString()} MZN\n TROCO: ${(sale.change || 0).toLocaleString()} MZN` : ''}
+${linhaDupla}
+
+ OBRIGADO PELA PREFERÊNCIA!
+ VOLTE SEMPRE!`;
+
+            try {
+                // Abre a janela com tamanho mínimo para ser mais rápida
+                const win = window.open('', '_blank', 'width=200,height=400');
+                if (win) {
+                    // Escreve o HTML com o recibo
+                    win.document.write(`
+                        <html>
+                            <head>
+                                <style>
+                                    @page { size: 80mm auto; margin: 0; }
+                                    body { 
+                                        font-family: 'Courier New', monospace; 
+                                        font-size: 13pt;
+                                        font-weight: bold;
+                                        text-align: center;
+                                        background: white;
+                                        color: black;
+                                        width: 80mm;
+                                        margin: 0 auto;
+                                        padding: 2mm;
+                                    }
+                                    pre { 
+                                        margin: 0; 
+                                        padding: 0;
+                                        font-family: 'Courier New', monospace;
+                                        font-size: 13pt;
+                                        font-weight: bold;
+                                        text-align: center;
+                                        white-space: pre-wrap;
+                                    }
+                                </style>
+                            </head>
+                            <body><pre>${receipt}</pre>
+                            <script>
+                                // IMPRESSÃO INSTANTÂNEA - 100ms de delay apenas
+                                window.print();
+                                setTimeout(() => window.close(), 100);
+                            <\/script></body>
+                        </html>
+                    `);
+                    win.document.close();
+                } else {
+                    showToast('⚠️ Permita popups para imprimir!', 'warning');
+                }
+            } catch(e) {
+                console.log("Erro ao imprimir:", e.message);
+                showToast('❌ Erro ao imprimir!', 'error');
+            }
+        }
+        
         // ===== FINALIZAR VENDA =====
         window.finalizeSale = async function() {
             if (currentCart.length === 0) { showToast('Carrinho vazio', 'error'); return; }
@@ -1171,113 +1268,36 @@
                 change: received - total, 
                 invoice: `INV-${Date.now()}` 
             };
-            const { error } = await supabaseClient.from('sales').insert([saleData]);
-            if (error) { showToast('Erro: ' + error.message, 'error'); return; }
             
+            // Tenta salvar no Supabase
+            const saved = await saveSaleToSupabase(saleData);
+            if (!saved) {
+                // Se falhou, mantém no localStorage pendente
+                showToast('⚠️ Venda salva localmente (offline)', 'warning');
+            }
+            
+            // Atualiza sales localmente
+            sales.unshift(saleData);
+            localStorage.setItem('lions_sales', JSON.stringify(sales));
+            
+            // Atualiza stock
             for (const item of currentCart) { 
                 const prod = products.find(p => p.id === item.id); 
                 if (prod) prod.stock -= item.quantity; 
             }
             await saveProducts();
             await updateMonthlySales(total);
-            await loadAllData();
             
-            // ===== IMPRESSÃO DO RECIBO (SEM LOCRO, 13pt BOLD, IMPRESSÃO INSTANTÂNEA) =====
+            // ===== IMPRESSÃO DO RECIBO - AGORA É ULTRA RÁPIDA! =====
             printReceipt(saleData);
             
-            const paymentIcon = paymentMethod === 'M-pesa' ? '📱' : paymentMethod === 'E-mola' ? '📶' : '💰';
-            notificarGerente('🛒 Nova Venda!', `${paymentIcon} ${saleData.seller} vendeu ${total.toLocaleString()} MZN (Lucro: ${totalProfit.toLocaleString()} MZN)`, 'success');
+            notificarGerente('🛒 Nova Venda!', `${saleData.seller} vendeu ${total.toLocaleString()} MZN`, 'success');
             
             currentCart = [];
             updateCartDisplay();
             filterProducts();
-            showToast(`✅ Venda de ${total.toLocaleString()} MZN (Lucro: ${totalProfit.toLocaleString()} MZN) registrada!`, 'success');
+            showToast(`✅ Venda de ${total.toLocaleString()} MZN registrada!`, 'success');
         };
-        
-        // ===== IMPRESSÃO DO RECIBO (13pt bold, centralizado, sem bordas, SEM LOCRO) =====
-        function printReceipt(sale) {
-            if (!sale) return;
-            let itensStr = '';
-            let itemsList = sale.items;
-            if (typeof itemsList === 'string') { try { itemsList = JSON.parse(itemsList); } catch(e) { itemsList = []; } }
-            if (itemsList && Array.isArray(itemsList)) {
-                itemsList.forEach(item => { 
-                    const nome = item.name.length > 28 ? item.name.substring(0, 26) + '..' : item.name;
-                    const precoItem = item.price.toLocaleString();
-                    const subtotal = (item.price * item.quantity).toLocaleString();
-                    itensStr += `${nome}\n${' '.repeat(8)}${item.quantity} x ${precoItem} MZN     ${subtotal} MZN\n`;
-                });
-            }
-            const dataFormatada = new Date(sale.date).toLocaleString('pt-MZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-            const linha = '----------------------------------------';
-            const linhaDupla = '========================================';
-            // RECIBO SEM LOCRO (removido o "Locro" do cabeçalho)
-            const receipt = `
-            🦁 LIONS FASHION
-        Av. Julius Nyerere n°6600
-           Maputo - Moçambique
-
-${linhaDupla}
- FACTURA: ${sale.invoice}
- DATA: ${dataFormatada}
- ATENDENTE: ${sale.seller || 'Vendedor'}
-${linha}
-${itensStr}
-${linha}
- TOTAL: ${sale.total.toLocaleString()} MZN
- LUCRO: ${(sale.profit || 0).toLocaleString()} MZN
- PAGAMENTO: ${sale.payment_method || 'Dinheiro'}
-${sale.payment_method === 'Dinheiro MZN' ? ` RECEBIDO: ${(sale.received || 0).toLocaleString()} MZN\n TROCO: ${(sale.change || 0).toLocaleString()} MZN` : ''}
-${linhaDupla}
-
-     OBRIGADO PELA PREFERÊNCIA!
-           VOLTE SEMPRE!`;
-
-            try {
-                // Abre janela pop-up, imprime e fecha instantaneamente
-                const win = window.open('', '_blank', 'width=300,height=500');
-                if (win) {
-                    win.document.write(`<html><head><title>Recibo LIONS</title>
-                        <style>
-                            @page { size: 80mm auto; margin: 0; }
-                            body { 
-                                font-family: 'Courier New', monospace; 
-                                width: 80mm; 
-                                margin: 0 auto; 
-                                padding: 3mm; 
-                                text-align: center;
-                                white-space: pre-wrap;
-                                background: white;
-                                color: black;
-                            }
-                            pre {
-                                margin: 0;
-                                padding: 0;
-                                font-family: 'Courier New', monospace;
-                                font-size: 13pt;
-                                font-weight: bold;
-                                text-align: center;
-                                white-space: pre-wrap;
-                                word-wrap: break-word;
-                            }
-                            @media print {
-                                body { margin: 0; padding: 0; }
-                            }
-                        </style>
-                    </head><body><pre>${receipt}</pre>
-                    <script>
-                        // Imprime imediatamente e fecha após 500ms
-                        window.print();
-                        setTimeout(() => window.close(), 500);
-                    <\/script></body></html>`);
-                    win.document.close();
-                } else { 
-                    showToast('⚠️ Permita popups para imprimir o recibo!', 'warning'); 
-                }
-            } catch(e) { 
-                console.log("Erro ao imprimir:", e.message); 
-            }
-        }
         
         // ===== FECHO DO DIA =====
         window.fechoDoDia = async function() {
@@ -1289,10 +1309,19 @@ ${linhaDupla}
             const lucroDia = vendasHoje.reduce((s, v) => s + (v.profit || 0), 0);
             const qtdVendas = vendasHoje.length;
             if (qtdVendas === 0) { showToast('Não há vendas para fechar hoje!', 'warning'); return; }
-            notificarGerente('📅 Fecho do Dia', `Fechando dia com ${qtdVendas} vendas`, 'warning');
-            for (const venda of vendasHoje) { await supabaseClient.from('sales').delete().eq('id', venda.id); }
-            await loadAllData();
-            notificarGerente('✅ Fecho do Dia Concluído!', `${qtdVendas} vendas, Total: ${totalDia.toLocaleString()} MZN`, 'success');
+            
+            // Remove vendas do dia
+            sales = sales.filter(s => new Date(s.date) < inicioDia);
+            localStorage.setItem('lions_sales', JSON.stringify(sales));
+            
+            // Tenta remover do Supabase
+            try {
+                for (const venda of vendasHoje) {
+                    await supabaseClient.from('sales').delete().eq('id', venda.id);
+                }
+            } catch(err) {
+                console.log("Erro ao remover vendas do Supabase");
+            }
             
             const pagamentos = {};
             vendasHoje.forEach(v => { pagamentos[v.payment_method] = (pagamentos[v.payment_method] || 0) + v.total; });
@@ -1436,7 +1465,8 @@ ${pagStr}
             const newId = Math.max(...users.map(u => u.id), 0) + 1; 
             const newUser = { id: newId, userId, password, name, role: 'seller', createdAt: new Date().toISOString() }; 
             users.push(newUser); 
-            await supabaseClient.from('users').upsert(newUser); 
+            localStorage.setItem('lions_users', JSON.stringify(users));
+            try { await supabaseClient.from('users').upsert(newUser); } catch(err) {}
             document.querySelector('.modal').remove(); 
             showSellers(); 
             showToast('Vendedor cadastrado!', 'success'); 
@@ -1445,7 +1475,8 @@ ${pagStr}
         window.deleteSeller = async function(id) { 
             if (confirm('Excluir vendedor?')) { 
                 users = users.filter(u => u.id !== id); 
-                await supabaseClient.from('users').delete().eq('id', id); 
+                localStorage.setItem('lions_users', JSON.stringify(users));
+                try { await supabaseClient.from('users').delete().eq('id', id); } catch(err) {}
                 showSellers(); 
                 showToast('Vendedor excluído!', 'success'); 
             } 
@@ -1524,22 +1555,28 @@ ${pagStr}
         // ===== INICIALIZAÇÃO =====
         window.onload = async () => {
             loadTheme();
+            updateOnlineStatus();
+            
+            // Sincroniza vendas pendentes quando online
+            window.addEventListener('online', async () => {
+                const pendingSales = JSON.parse(localStorage.getItem('lions_pending_sales') || '[]');
+                if (pendingSales.length > 0) {
+                    for (const sale of pendingSales) {
+                        try {
+                            await supabaseClient.from('sales').insert([sale]);
+                        } catch(err) {}
+                    }
+                    localStorage.setItem('lions_pending_sales', '[]');
+                    showToast('📤 Vendas offline sincronizadas!', 'success');
+                }
+                updateOnlineStatus();
+            });
             
             if (Notification.permission !== 'granted' && Notification.permission !== 'denied') Notification.requestPermission();
             
-            supabaseClient.channel('sales-channel')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sales' }, payload => { 
-                    if (currentUser && currentUser.role === 'admin') { 
-                        notificarGerente('🛒 Nova Venda!', `Venda de ${payload.new.total.toLocaleString()} MZN!`, 'success'); 
-                        loadAllData(); 
-                        if (document.getElementById('pageTitle')?.innerText.includes('Dashboard')) showDashboard(); 
-                    } 
-                })
-                .subscribe();
-            
             await loadAllData();
             setupBarcodeListener();
-            console.log("🦁 LIONS FASHION - Sistema Pronto com Dark/Light, Recibo 13pt bold, Stock Inicial/Atual, Dashboard Financeiro, Vendas Mensais Persistentes!");
+            console.log("🦁 LIONS FASHION - Sistema 100% Online/Offline com Impressão Ultra Rápida!");
         };
     </script>
 </body>
